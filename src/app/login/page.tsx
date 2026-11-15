@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Card, ErrorText } from "../ui";
+import { EmailLinkHandler } from "./email-link";
 import { LoginForm } from "./form";
 
 export const metadata: Metadata = { title: "Sign in · Budget Manager" };
@@ -18,6 +19,7 @@ async function LinkError({ searchParams }: { searchParams: PageProps<"/login">["
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <Card title="Sign in">
+      <EmailLinkHandler />
       <Suspense fallback={null}>
         <LinkError searchParams={searchParams} />
       </Suspense>

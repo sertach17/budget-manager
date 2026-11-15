@@ -47,12 +47,13 @@ dashboard, not in code:
 - **Authentication → Sign In / Providers:** "Allow new users to sign up" off.
 - **Authentication → URL Configuration:** Site URL `https://budget.torrezhq.com`,
   plus redirect URL `https://budget.torrezhq.com/**`.
-- **Authentication → Emails → Invite user:** link set to
-  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite`
-- **Authentication → Emails → Reset password:** link set to
-  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+- **Emails:** the default Supabase emails are used for now (custom SMTP is
+  needed to edit them). Their links come back to the Site URL with the session
+  in the URL fragment; `src/app/login/email-link.tsx` picks that up. If custom
+  SMTP is added later, point the Invite and Reset password links at
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite` (or
+  `type=recovery`), which `src/app/auth/confirm/route.ts` handles.
 - **Authentication → Multi-Factor:** TOTP (authenticator app) enabled.
 
 To add a person: **Authentication → Users → Invite user**. The invite link
-opens `/auth/confirm`, then they choose a password and scan the two-factor QR
-code.
+signs them in, then they choose a password and scan the two-factor QR code.
