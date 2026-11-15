@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { gmailConfirmLink } from "@/lib/venmo/parse";
 import { ConnectBankButton } from "./connect-button";
 import { SyncButton } from "./sync-button";
+import { clearGmailConfirmation } from "./venmo-actions";
 import { CorrectBalanceForm, StartVenmoForm } from "./venmo-forms";
 
 export const metadata: Metadata = { title: "Banks · Budget Manager" };
@@ -123,8 +124,12 @@ async function Venmo() {
     ? await supabase.from("accounts").select("current_balance, balance_updated_at").eq("id", feed.account_id).maybeSingle()
     : { data: null };
 
-  // A Gmail confirmation code or link is only useful for a day.
-  const fresh = withinADay(feed?.gmail_confirmation_at ?? null);
+  // A Gmail confirmation code or link is only useful for a day, and not at
+  // all once Venmo emails have started arriving (forwarding then works).
+  const forwardingWorks =
+    Boolean(feed?.last_email_at && feed?.gmail_confirmation_at) &&
+    new Date(feed!.last_email_at!) > new Date(feed!.gmail_confirmation_at!);
+  const fresh = withinADay(feed?.gmail_confirmation_at ?? null) && !forwardingWorks;
   const showCode = fresh && feed?.gmail_confirmation;
   // Checked again here so only Google's own confirm link is ever shown.
   const confirmLink = fresh && feed?.gmail_confirmation_url ? gmailConfirmLink(feed.gmail_confirmation_url) : null;
@@ -150,18 +155,28 @@ async function Venmo() {
           <p className="mt-3 text-sm">
             Venmo emails forwarded to <span className="font-mono">{feed.inbound_address}</span> update this balance.
           </p>
-          {showCode ? (
-            <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm dark:bg-emerald-500/10">
-              Gmail forwarding confirmation code: <span className="font-mono font-semibold">{feed.gmail_confirmation}</span>
-            </p>
-          ) : null}
-          {confirmLink ? (
-            <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm dark:bg-emerald-500/10">
-              Gmail sent a link to confirm forwarding to {feed.inbound_address}.{" "}
-              <a href={confirmLink} target="_blank" rel="noreferrer noopener" className="font-semibold underline">
-                Confirm forwarding in Gmail
-              </a>
-            </p>
+          {showCode || confirmLink ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm dark:bg-emerald-500/10">
+              <p>
+                {showCode ? (
+                  <>
+                    Gmail forwarding confirmation code: <span className="font-mono font-semibold">{feed.gmail_confirmation}</span>
+                  </>
+                ) : (
+                  <>
+                    Gmail sent a link to confirm forwarding to {feed.inbound_address}.{" "}
+                    <a href={confirmLink!} target="_blank" rel="noreferrer noopener" className="font-semibold underline">
+                      Confirm forwarding in Gmail
+                    </a>
+                  </>
+                )}
+              </p>
+              <form action={clearGmailConfirmation}>
+                <button type="submit" className="rounded-lg border border-black/15 px-3 py-1.5 text-xs dark:border-white/20">
+                  Done, hide this
+                </button>
+              </form>
+            </div>
           ) : null}
           <CorrectBalanceForm />
           {emails?.length ? (

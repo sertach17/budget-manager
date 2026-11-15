@@ -85,3 +85,14 @@ export async function correctVenmoBalance(_prev: VenmoFormState, form: FormData)
   revalidatePath("/");
   return { ok: true, message: "Balance saved." };
 }
+
+// Hides Gmail's forwarding code or confirm link once you've used it.
+export async function clearGmailConfirmation() {
+  const { userId } = await requireTwoFactorUser();
+  const admin = createAdminClient();
+  await admin
+    .from("venmo_feeds")
+    .update({ gmail_confirmation: null, gmail_confirmation_url: null, gmail_confirmation_at: null })
+    .eq("user_id", userId);
+  revalidatePath("/banks");
+}
