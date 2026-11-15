@@ -23,6 +23,7 @@ $q$; end $mig$;
 | --- | --- |
 | `20261115000000_budget_tables.sql` | Nov 15, 2026, through Vercel's Query tab |
 | `20261115010000_require_two_factor.sql` | Nov 15, 2026 via the Query tab |
+| `20261115020000_plaid_items.sql` | Nov 15, 2026 |
 
 `20261115010000_require_two_factor.sql` is already one block, so it can be
 pasted into either editor as is.
@@ -30,13 +31,30 @@ pasted into either editor as is.
 | File | What it does |
 | --- | --- |
 | `20261115000000_budget_tables.sql` | Accounts, categories, imports, transactions and budgets, each locked with row-level security so a signed-in user only sees their own rows |
+| `20261115010000_require_two_factor.sql` | Those tables also require a session that passed two-factor (aal2) |
+| `20261115020000_plaid_items.sql` | Plaid connections and their access tokens, readable only by the server's service role; links accounts to their connection and keeps Plaid's category on each transaction |
 
 ## Conventions
 
 - Every table has `user_id`, filled in from the signed-in user.
 - `amount` below zero is money out, above zero is money in.
 - `fingerprint` on a transaction stops the same transaction from being counted
-  twice when an upload overlaps data from Plaid.
+  twice. Plaid transactions use `plaid:<transaction id>`.
+
+## Plaid keys (Vercel environment variables)
+
+| Name | Where | Value |
+| --- | --- | --- |
+| `PLAID_CLIENT_ID` | Production and Preview | Client ID from Plaid's keys page (dashboard.plaid.com/developers/keys) |
+| `PLAID_SECRET` | Preview | Sandbox secret (Plaid's fake bank) |
+| `PLAID_SECRET` | Production | Production secret (real banks), saved as type Secret |
+| `PLAID_ENV` | optional | `sandbox` or `production`; without it, the live site uses production and previews use sandbox |
+
+All three were added in Vercel on Nov 15, 2026. Vercel only reads new values on
+the next build, so redeploy after changing one.
+
+Plaid's free Trial plan allows 10 bank connections in production. Removing a
+connection doesn't give the slot back, so test with the sandbox first.
 
 ## Login settings (Supabase dashboard)
 
