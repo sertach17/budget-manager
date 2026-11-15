@@ -9,6 +9,7 @@ type PlaidItemRow = {
   user_id: string;
   access_token: string;
   sync_cursor: string | null;
+  institution_name: string | null;
 };
 
 // Plaid's account types mapped onto ours.
@@ -51,6 +52,7 @@ export async function syncPlaidItem(admin: SupabaseClient, item: PlaidItemRow) {
           plaid_item_id: item.id,
           plaid_account_id: a.account_id,
           name: (a.name || a.official_name || "Account").slice(0, 100),
+          institution: item.institution_name,
           type: accountType(a),
           source: "plaid",
           mask: cleanMask(a.mask),

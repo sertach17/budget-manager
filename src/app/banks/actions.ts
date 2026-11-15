@@ -51,7 +51,7 @@ export async function connectBank(publicToken: string): Promise<Result> {
         institution_id: item.institution_id ?? null,
         institution_name: item.institution_name ?? null,
       })
-      .select("id, user_id, access_token, sync_cursor")
+      .select("id, user_id, access_token, sync_cursor, institution_name")
       .single();
     if (error || !saved) throw new Error(`Saving the connection failed: ${error?.message}`);
 
@@ -73,7 +73,7 @@ export async function syncBank(itemId: string): Promise<Result> {
   const admin = createAdminClient();
   const { data: item } = await admin
     .from("plaid_items")
-    .select("id, user_id, access_token, sync_cursor")
+    .select("id, user_id, access_token, sync_cursor, institution_name")
     .eq("id", itemId)
     .eq("user_id", userId)
     .maybeSingle();
