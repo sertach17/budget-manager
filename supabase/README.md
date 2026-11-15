@@ -24,6 +24,7 @@ $q$; end $mig$;
 | `20261115000000_budget_tables.sql` | Nov 15, 2026, through Vercel's Query tab |
 | `20261115010000_require_two_factor.sql` | Nov 15, 2026 via the Query tab |
 | `20261115020000_plaid_items.sql` | Nov 15, 2026 |
+| `20261115030000_venmo_email_feed.sql` | Nov 15, 2026 |
 
 `20261115010000_require_two_factor.sql` is already one block, so it can be
 pasted into either editor as is.
@@ -33,13 +34,15 @@ pasted into either editor as is.
 | `20261115000000_budget_tables.sql` | Accounts, categories, imports, transactions and budgets, each locked with row-level security so a signed-in user only sees their own rows |
 | `20261115010000_require_two_factor.sql` | Those tables also require a session that passed two-factor (aal2) |
 | `20261115020000_plaid_items.sql` | Plaid connections and their access tokens, readable only by the server's service role; links accounts to their connection and keeps Plaid's category on each transaction |
+| `20261115030000_venmo_email_feed.sql` | Venmo from forwarded emails: the feed settings, a log of each email's outcome, and a function that adds one Venmo transaction and moves the balance together (see `cloudflare/venmo-email-worker/README.md`) |
 
 ## Conventions
 
 - Every table has `user_id`, filled in from the signed-in user.
 - `amount` below zero is money out, above zero is money in.
 - `fingerprint` on a transaction stops the same transaction from being counted
-  twice. Plaid transactions use `plaid:<transaction id>`.
+  twice. Plaid transactions use `plaid:<transaction id>`; Venmo uses
+  `venmo:<transaction id>` and `venmo-transfer:<transfer id>`.
 
 ## Plaid keys (Vercel environment variables)
 
