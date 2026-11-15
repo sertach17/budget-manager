@@ -2,8 +2,9 @@ import type { Account, AccountType, Budget, BudgetData, Category, CategoryKind, 
 
 // Turns database rows into the shapes DashboardView uses.
 //
-// Until you sort transactions into your own categories, a transaction with no
-// category_id is grouped by Plaid's category (plaid_category holds Plaid's
+// A transaction with no category_id goes to the category of yours whose
+// plaid_categories list names its Plaid category. If none does, it's grouped
+// by Plaid's own category (plaid_category holds Plaid's
 // detailed name, like FOOD_AND_DRINK_GROCERIES). Transfers between your own
 // accounts and card payments count as transfers, so they aren't spending.
 
@@ -35,6 +36,7 @@ export type CategoryRow = {
   kind: string;
   color: string | null;
   is_excluded: boolean;
+  plaid_categories?: string[] | null;
 };
 
 export type BudgetRow = {
@@ -143,12 +145,25 @@ export function budgetDataFromRows(rows: {
     });
   }
 
+  // Your categories' bank-category lists: detailed names win over top-level.
+  const byPlaidName = new Map<string, string>();
+  for (const c of rows.categories) {
+    for (const name of c.plaid_categories ?? []) {
+      if (!byPlaidName.has(name)) byPlaidName.set(name, c.id);
+    }
+  }
+  const yourCategoryFor = (detailed: string | null) => {
+    if (!detailed) return null;
+    const group = plaidGroup(detailed);
+    return byPlaidName.get(detailed) ?? (group ? byPlaidName.get(group) : undefined) ?? null;
+  };
+
   const accountIds = new Set(accounts.map((a) => a.id));
   const transactions: Transaction[] = [];
   for (const t of rows.transactions) {
     // Rows from hidden accounts are left out with the account.
     if (!accountIds.has(t.account_id)) continue;
-    let categoryId = t.category_id && categories.has(t.category_id) ? t.category_id : null;
+    let categoryId = t.category_id && categories.has(t.category_id) ? t.category_id : yourCategoryFor(t.plaid_category);
     if (!categoryId) {
       const fallback = fallbackCategory(t);
       if (!categories.has(fallback.id)) categories.set(fallback.id, fallback);

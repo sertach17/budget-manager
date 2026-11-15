@@ -72,3 +72,28 @@ test("your own category wins over Plaid's", () => {
   const s = summarizeMonth(data, "2026-11-15");
   assert.deepEqual(s.byCategory.map((c) => [c.category.name, c.spent, c.budget]), [["Groceries", 40, 600]]);
 });
+
+test("your categories pick up bank categories you listed, detailed first", () => {
+  const data = budgetDataFromRows({
+    accounts: [checking],
+    categories: [
+      { id: "food", name: "Restaurants", group_name: null, kind: "expense", color: null, is_excluded: false, plaid_categories: ["FOOD_AND_DRINK"] },
+      { id: "groc", name: "Groceries", group_name: null, kind: "expense", color: null, is_excluded: false, plaid_categories: ["FOOD_AND_DRINK_GROCERIES"] },
+    ],
+    budgets: [],
+    transactions: [
+      row({ id: "a", amount: "-30", plaid_category: "FOOD_AND_DRINK_GROCERIES" }),
+      row({ id: "b", amount: "-12", plaid_category: "FOOD_AND_DRINK_FAST_FOOD" }),
+      row({ id: "c", amount: "-5", plaid_category: "ENTERTAINMENT_MUSIC_AND_AUDIO" }),
+    ],
+  });
+  const s = summarizeMonth(data, "2026-11-15");
+  assert.deepEqual(
+    s.byCategory.map((c) => [c.category.name, c.spent]),
+    [
+      ["Groceries", 30],
+      ["Restaurants", 12],
+      ["Entertainment", 5],
+    ],
+  );
+});

@@ -26,6 +26,7 @@ $q$; end $mig$;
 | `20261115020000_plaid_items.sql` | Nov 15, 2026 |
 | `20261115030000_venmo_email_feed.sql` | Nov 15, 2026 |
 | `20261115040000_gmail_confirm_link.sql` | Nov 15, 2026 |
+| `20261115050000_category_bank_matches.sql` | not yet |
 
 `20261115010000_require_two_factor.sql` is already one block, so it can be
 pasted into either editor as is.
@@ -37,6 +38,7 @@ pasted into either editor as is.
 | `20261115020000_plaid_items.sql` | Plaid connections and their access tokens, readable only by the server's service role; links accounts to their connection and keeps Plaid's category on each transaction |
 | `20261115030000_venmo_email_feed.sql` | Venmo from forwarded emails: the feed settings, a log of each email's outcome, and a function that adds one Venmo transaction and moves the balance together (see `cloudflare/venmo-email-worker/README.md`) |
 | `20261115040000_gmail_confirm_link.sql` | Keeps Gmail's forwarding confirm link (Google's own hosts only) for emails that carry a link instead of a code |
+| `20261115050000_category_bank_matches.sql` | Lists which bank (Plaid) categories sort into each of your categories |
 
 ## Conventions
 
