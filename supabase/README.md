@@ -22,7 +22,7 @@ $q$; end $mig$;
 | File | Applied |
 | --- | --- |
 | `20261115000000_budget_tables.sql` | Nov 15, 2026, through Vercel's Query tab |
-| `20261115010000_require_two_factor.sql` | Not yet |
+| `20261115010000_require_two_factor.sql` | Nov 15, 2026 via the Query tab |
 
 `20261115010000_require_two_factor.sql` is already one block, so it can be
 pasted into either editor as is.
