@@ -39,7 +39,10 @@ export default function Home() {
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Dashboard />
       </Suspense>
-      <p className="mt-6 text-sm">
+      <p className="mt-6 flex gap-4 text-sm">
+        <Link href="/banks" className="underline">
+          Banks
+        </Link>
         <Link href="/account/password" className="underline">
           Change password
         </Link>
