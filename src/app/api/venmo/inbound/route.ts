@@ -56,15 +56,29 @@ export async function POST(request: Request) {
 
   // Gmail's "confirm this forwarding address" email.
   if (sender.domain === "google.com" && sender.from === "forwarding-noreply@google.com") {
+    const found = parseGmailConfirmation({ subject, text: email.text ?? "", html: email.html ?? "", mailbox: feed.mailbox });
     // Only for forwarding from your own mailbox, so nobody else can swap in their code.
-    const code = text.toLowerCase().includes(feed.mailbox.toLowerCase()) ? parseGmailConfirmation({ subject, text }) : null;
-    if (code) {
-      await admin
+    if (found.mentionsMailbox && (found.code || found.link)) {
+      const { error } = await admin
         .from("venmo_feeds")
-        .update({ gmail_confirmation: code, gmail_confirmation_at: new Date().toISOString() })
+        .update({
+          gmail_confirmation: found.code,
+          gmail_confirmation_url: found.link,
+          gmail_confirmation_at: new Date().toISOString(),
+        })
         .eq("user_id", feed.user_id);
+      if (error) {
+        await log("failed", "Couldn't save Gmail's confirmation");
+        return reply(500, "Couldn't save.");
+      }
+      await log("ignored", found.code ? "Gmail forwarding code saved" : "Gmail confirm link saved");
+    } else {
+      // Say which part was missing, never the email's text.
+      const why = !found.mentionsMailbox
+        ? "doesn't mention your mailbox"
+        : `no code or Google confirm link (text ${email.text?.length ?? 0} chars, html ${email.html?.length ?? 0} chars)`;
+      await log("ignored", `Gmail email: ${why}`);
     }
-    await log("ignored", code ? "Gmail forwarding confirmation code saved" : "Gmail email without a code");
     return reply(200, "ok");
   }
 

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { isPlaidConfigured, plaidEnv } from "@/lib/plaid/client";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { gmailConfirmLink } from "@/lib/venmo/parse";
 import { ConnectBankButton } from "./connect-button";
 import { SyncButton } from "./sync-button";
 import { CorrectBalanceForm, StartVenmoForm } from "./venmo-forms";
@@ -114,7 +115,7 @@ async function Venmo() {
   const [{ data: feed }, { data: emails }] = await Promise.all([
     supabase
       .from("venmo_feeds")
-      .select("account_id, inbound_address, mailbox, last_email_at, gmail_confirmation, gmail_confirmation_at")
+      .select("account_id, inbound_address, mailbox, last_email_at, gmail_confirmation, gmail_confirmation_url, gmail_confirmation_at")
       .maybeSingle(),
     supabase.from("venmo_emails").select("id, received_at, subject, outcome, detail").order("created_at", { ascending: false }).limit(8),
   ]);
@@ -122,8 +123,11 @@ async function Venmo() {
     ? await supabase.from("accounts").select("current_balance, balance_updated_at").eq("id", feed.account_id).maybeSingle()
     : { data: null };
 
-  // A Gmail confirmation code is only useful for a day.
-  const showCode = feed?.gmail_confirmation && withinADay(feed.gmail_confirmation_at);
+  // A Gmail confirmation code or link is only useful for a day.
+  const fresh = withinADay(feed?.gmail_confirmation_at ?? null);
+  const showCode = fresh && feed?.gmail_confirmation;
+  // Checked again here so only Google's own confirm link is ever shown.
+  const confirmLink = fresh && feed?.gmail_confirmation_url ? gmailConfirmLink(feed.gmail_confirmation_url) : null;
 
   return (
     <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/15">
@@ -149,6 +153,14 @@ async function Venmo() {
           {showCode ? (
             <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm dark:bg-emerald-500/10">
               Gmail forwarding confirmation code: <span className="font-mono font-semibold">{feed.gmail_confirmation}</span>
+            </p>
+          ) : null}
+          {confirmLink ? (
+            <p className="mt-3 rounded-xl bg-emerald-50 px-4 py-3 text-sm dark:bg-emerald-500/10">
+              Gmail sent a link to confirm forwarding to {feed.inbound_address}.{" "}
+              <a href={confirmLink} target="_blank" rel="noreferrer noopener" className="font-semibold underline">
+                Confirm forwarding in Gmail
+              </a>
             </p>
           ) : null}
           <CorrectBalanceForm />

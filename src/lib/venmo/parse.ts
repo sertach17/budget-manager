@@ -172,9 +172,43 @@ export function parseVenmoEmail(input: { subject: string; text: string; received
   };
 }
 
-// The Gmail forwarding confirmation code, from Google's confirmation email.
-export function parseGmailConfirmation(input: { subject: string; text: string }) {
+// Gmail's "confirm this forwarding address" email. Older ones carry a
+// numeric code to type into Gmail; newer ones may only carry a confirm link.
+// Only Google's own confirm links are kept (https, on mail-settings.google.com
+// or mail.google.com).
+export type GmailConfirmation = {
+  code: string | null;
+  link: string | null;
+  mentionsMailbox: boolean;
+};
+
+const CONFIRM_HOSTS = new Set(["mail-settings.google.com", "mail.google.com"]);
+
+export function gmailConfirmLink(candidate: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(candidate.replace(/&amp;/g, "&"));
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" || !CONFIRM_HOSTS.has(url.hostname) || url.port || url.username || url.password) return null;
+  if (!/\/vf-|\/vf\b|verif|confirm/i.test(url.pathname + url.search)) return null;
+  const href = url.toString();
+  return href.length <= 2000 ? href : null;
+}
+
+export function parseGmailConfirmation(input: { subject: string; text: string; html?: string; mailbox: string }): GmailConfirmation {
   const body = toPlainText(input.text);
-  const code = body.match(/Confirmation code:?\s*(\d{6,12})/i)?.[1] ?? input.subject.match(/#(\d{6,12})/)?.[1];
-  return code ?? null;
+  const all = `${input.text}\n${input.html ?? ""}`;
+  const mentionsMailbox = `${input.subject}\n${all}`.toLowerCase().includes(input.mailbox.toLowerCase());
+  const code =
+    body.match(/Confirmation code:?\s*(\d{6,12})\b/i)?.[1] ??
+    input.subject.match(/#\s*(\d{6,12})\b/)?.[1] ??
+    null;
+  let link: string | null = null;
+  for (const m of all.matchAll(/https:\/\/[^\s"'<>)\]]+/g)) {
+    link = gmailConfirmLink(m[0]);
+    if (link) break;
+  }
+  return { code, link, mentionsMailbox };
 }

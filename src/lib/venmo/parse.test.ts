@@ -3,7 +3,7 @@
 // footers left out.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseGmailConfirmation, parseVenmoEmail } from "./parse.ts";
+import { gmailConfirmLink, parseGmailConfirmation, parseVenmoEmail } from "./parse.ts";
 
 const at = new Date("2026-11-15T03:46:39Z"); // Nov 14, 10:46 PM in New York
 
@@ -116,11 +116,36 @@ test("emails that move no money are ignored", () => {
 });
 
 test("Gmail forwarding confirmation code", () => {
-  assert.equal(
-    parseGmailConfirmation({
-      subject: "(#123456789) Gmail Forwarding Confirmation - Receive Mail from someone@gmail.com",
-      text: "someone@gmail.com has requested to automatically forward mail to your email address. Confirmation code: 123456789",
-    }),
-    "123456789",
-  );
+  const got = parseGmailConfirmation({
+    subject: "(#123456789) Gmail Forwarding Confirmation - Receive Mail from someone@gmail.com",
+    text: "someone@gmail.com has requested to automatically forward mail to your email address. Confirmation code: 123456789",
+    mailbox: "someone@gmail.com",
+  });
+  assert.equal(got.code, "123456789");
+  assert.equal(got.link, null);
+  assert.equal(got.mentionsMailbox, true);
+});
+
+test("Gmail forwarding confirmation link only", () => {
+  const got = parseGmailConfirmation({
+    subject: "(Gmail Forwarding Confirmation - Receive Mail from someone@gmail.com",
+    text: "someone@gmail.com has requested to automatically forward mail to your email address venmo@example.com. To allow it, click the link below: https://mail-settings.google.com/mail/vf-%5BANGjdJ_abc%5D-xyz123 If you click the link and it appears to be broken...",
+    html: '<a href="https://evil.example.com/mail/vf-x">x</a>',
+    mailbox: "someone@gmail.com",
+  });
+  assert.equal(got.code, null);
+  assert.equal(got.link, "https://mail-settings.google.com/mail/vf-%5BANGjdJ_abc%5D-xyz123");
+});
+
+test("Gmail confirm links only from Google's own hosts", () => {
+  for (const bad of [
+    "http://mail-settings.google.com/mail/vf-abc",
+    "https://mail-settings.google.com.evil.com/mail/vf-abc",
+    "https://evil.com/?u=https://mail-settings.google.com/mail/vf-abc",
+    "https://user@mail-settings.google.com/mail/vf-abc",
+    "https://mail.google.com/mail/u/0/#inbox",
+  ]) {
+    assert.equal(gmailConfirmLink(bad), null, bad);
+  }
+  assert.equal(gmailConfirmLink("https://mail.google.com/mail/vf-abc?x=1&amp;y=2"), "https://mail.google.com/mail/vf-abc?x=1&y=2");
 });
