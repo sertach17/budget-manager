@@ -49,7 +49,9 @@ const PLAID_GROUPS: Record<string, Fallback> = {
   INCOME: { name: "Income", kind: "income", color: "#059669" },
   TRANSFER_IN: { name: "Transfers", kind: "transfer", color: "#6b7280", excluded: true },
   TRANSFER_OUT: { name: "Transfers", kind: "transfer", color: "#6b7280", excluded: true },
-  LOAN_PAYMENTS: { name: "Transfers", kind: "transfer", color: "#6b7280", excluded: true },
+  // Mortgage, car and other loan payments are real spending; card payments
+  // are not (the card's purchases already counted), see DETAILED below.
+  LOAN_PAYMENTS: { name: "Loan payments", kind: "expense", color: "#4f46e5" },
   LOAN_DISBURSEMENTS: { name: "Transfers", kind: "transfer", color: "#6b7280", excluded: true },
   BANK_FEES: { name: "Bank fees", kind: "expense", color: "#b91c1c" },
   ENTERTAINMENT: { name: "Entertainment", kind: "expense", color: "#e11d48" },
@@ -63,6 +65,11 @@ const PLAID_GROUPS: Record<string, Fallback> = {
   TRANSPORTATION: { name: "Transportation", kind: "expense", color: "#ca8a04" },
   TRAVEL: { name: "Travel", kind: "expense", color: "#0d9488" },
   RENT_AND_UTILITIES: { name: "Rent and utilities", kind: "expense", color: "#16a34a" },
+};
+
+// Detailed categories that don't follow their top level.
+const DETAILED: Record<string, Fallback> = {
+  LOAN_PAYMENTS_CREDIT_CARD_PAYMENT: { name: "Transfers", kind: "transfer", color: "#6b7280", excluded: true },
 };
 
 const UNCATEGORIZED: Category = {
@@ -100,9 +107,9 @@ export function plaidGroup(detailed: string | null): string | null {
 
 function fallbackCategory(t: TransactionRow): Category {
   const group = plaidGroup(t.plaid_category);
-  if (group) {
-    const f = PLAID_GROUPS[group];
-    // TRANSFER_IN, TRANSFER_OUT and loan rows share one "Transfers" bucket.
+  const f = (t.plaid_category && DETAILED[t.plaid_category]) || (group ? PLAID_GROUPS[group] : null);
+  if (f) {
+    // Transfer rows and card payments share one "Transfers" bucket.
     const id = `fallback:${f.name.toLowerCase().replace(/[^a-z]+/g, "-")}`;
     return { id, name: f.name, groupName: null, kind: f.kind, color: f.color, isExcluded: f.excluded ?? false };
   }

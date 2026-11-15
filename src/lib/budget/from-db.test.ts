@@ -40,18 +40,20 @@ test("real rows summarize: spending, income, transfers left out, net worth", () 
       row({ id: "t3", amount: "2100.00", plaid_category: "INCOME_WAGES" }),
       row({ id: "t4", amount: "-300.00", plaid_category: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT" }),
       row({ id: "t5", account_id: "a2", amount: "300.00", plaid_category: "TRANSFER_IN_ACCOUNT_TRANSFER" }),
+      row({ id: "t9", amount: "-243.57", plaid_category: "LOAN_PAYMENTS_PERSONAL_LOAN_PAYMENT" }),
       row({ id: "t6", amount: "-15.00" }), // Venmo email row: no Plaid category
       row({ id: "t7", amount: "25.00" }),
       row({ id: "t8", account_id: "hidden", amount: "-999" }),
     ],
   });
   const s = summarizeMonth(data, "2026-11-15");
-  assert.equal(s.spent, 89.2);
+  assert.equal(s.spent, 332.77);
   assert.equal(s.income, 2125);
   assert.equal(s.netWorth, 1200.25);
   assert.deepEqual(
     s.byCategory.map((c) => [c.category.name, c.spent]),
     [
+      ["Loan payments", 243.57],
       ["Food and drink", 74.2],
       ["Uncategorized", 15],
     ],
