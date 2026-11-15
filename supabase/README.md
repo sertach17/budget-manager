@@ -22,6 +22,10 @@ $q$; end $mig$;
 | File | Applied |
 | --- | --- |
 | `20261115000000_budget_tables.sql` | Nov 15, 2026, through Vercel's Query tab |
+| `20261115010000_require_two_factor.sql` | Not yet |
+
+`20261115010000_require_two_factor.sql` is already one block, so it can be
+pasted into either editor as is.
 
 | File | What it does |
 | --- | --- |
@@ -33,3 +37,22 @@ $q$; end $mig$;
 - `amount` below zero is money out, above zero is money in.
 - `fingerprint` on a transaction stops the same transaction from being counted
   twice when an upload overlaps data from Plaid.
+
+## Login settings (Supabase dashboard)
+
+The app signs in with email and password, then asks for a 6-digit code from an
+authenticator app. Accounts are invitation only. These are set in the Supabase
+dashboard, not in code:
+
+- **Authentication → Sign In / Providers:** "Allow new users to sign up" off.
+- **Authentication → URL Configuration:** Site URL `https://budget.torrezhq.com`,
+  plus redirect URL `https://budget.torrezhq.com/**`.
+- **Authentication → Emails → Invite user:** link set to
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite`
+- **Authentication → Emails → Reset password:** link set to
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+- **Authentication → Multi-Factor:** TOTP (authenticator app) enabled.
+
+To add a person: **Authentication → Users → Invite user**. The invite link
+opens `/auth/confirm`, then they choose a password and scan the two-factor QR
+code.
