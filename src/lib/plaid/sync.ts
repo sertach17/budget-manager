@@ -30,6 +30,17 @@ function accountType(account: Plaid.AccountBase): AccountType {
   }
 }
 
+// Banks send names like "Way2Save\uFFFD\uFFFD Savings ...9165": broken
+// trademark symbols and the last four digits, which the app already shows.
+export function cleanAccountName(name: string) {
+  const cleaned = name
+    .replace(/[\uFFFD\u00AE\u2122]/g, "")
+    .replace(/\s*\.{2,}\s*\d{2,4}\s*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (cleaned || "Account").slice(0, 100);
+}
+
 function cleanMask(mask: string | null) {
   return mask && /^[0-9]{2,4}$/.test(mask) ? mask : null;
 }
@@ -51,7 +62,7 @@ export async function syncPlaidItem(admin: SupabaseClient, item: PlaidItemRow) {
           user_id: item.user_id,
           plaid_item_id: item.id,
           plaid_account_id: a.account_id,
-          name: (a.name || a.official_name || "Account").slice(0, 100),
+          name: cleanAccountName(a.name || a.official_name || "Account"),
           institution: item.institution_name,
           type: accountType(a),
           source: "plaid",
