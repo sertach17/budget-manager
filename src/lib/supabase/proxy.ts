@@ -4,8 +4,10 @@ import { supabaseEnv } from "./env";
 
 // Pages anyone can open without signing in.
 const PUBLIC_PATHS = ["/login", "/auth/confirm"];
-// The demo shows only made-up data, so it's open to everyone, signed in or not.
-const DEMO_PATHS = ["/demo"];
+// Open to everyone, signed in or not, with no session check: the demo shows
+// only made-up data, and the Venmo inbox endpoint checks each email's
+// signature itself.
+const NO_SESSION_PATHS = ["/demo", "/api/venmo/inbound"];
 // Pages a signed-in user can open before finishing two-factor setup.
 const SETUP_PATHS = ["/mfa", "/account/password"];
 
@@ -25,14 +27,13 @@ function redirectTo(request: NextRequest, pathname: string, from: NextResponse) 
 
 // Runs before every page: refreshes the Supabase session cookie and sends
 // people to the right place.
-//   - Anyone: the demo page (made-up data only).
+//   - Anyone: the demo page (made-up data only) and the Venmo inbox endpoint.
 //   - Not signed in: only the login page.
 //   - Signed in with a password but no two-factor code yet: only the
 //     two-factor page (and the set-password page before two-factor exists).
 //   - Signed in with two-factor (aal2): everything.
 export async function updateSession(request: NextRequest) {
-  // The demo never touches Supabase, so skip the session check entirely.
-  if (matches(request.nextUrl.pathname, DEMO_PATHS)) return NextResponse.next({ request });
+  if (matches(request.nextUrl.pathname, NO_SESSION_PATHS)) return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });
   const { url, key } = supabaseEnv();
