@@ -45,10 +45,13 @@ pasted into either editor as is.
 
 | Name | Where | Value |
 | --- | --- | --- |
-| `PLAID_CLIENT_ID` | Production and Preview | Client ID from Plaid's dashboard (Developers → Keys) |
+| `PLAID_CLIENT_ID` | Production and Preview | Client ID from Plaid's keys page (dashboard.plaid.com/developers/keys) |
 | `PLAID_SECRET` | Preview | Sandbox secret (Plaid's fake bank) |
-| `PLAID_SECRET` | Production | Production secret (real banks), marked Sensitive |
+| `PLAID_SECRET` | Production | Production secret (real banks), saved as type Secret |
 | `PLAID_ENV` | optional | `sandbox` or `production`; without it, the live site uses production and previews use sandbox |
+
+All three were added in Vercel on Nov 15, 2026. Vercel only reads new values on
+the next build, so redeploy after changing one.
 
 Plaid's free Trial plan allows 10 bank connections in production. Removing a
 connection doesn't give the slot back, so test with the sandbox first.
