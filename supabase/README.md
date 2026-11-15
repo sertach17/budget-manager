@@ -24,7 +24,7 @@ $q$; end $mig$;
 | `20261115000000_budget_tables.sql` | Nov 15, 2026, through Vercel's Query tab |
 | `20261115010000_require_two_factor.sql` | Nov 15, 2026 via the Query tab |
 | `20261115020000_plaid_items.sql` | Nov 15, 2026 |
-| `20261115030000_venmo_email_feed.sql` | Not yet |
+| `20261115030000_venmo_email_feed.sql` | Nov 15, 2026 |
 
 `20261115010000_require_two_factor.sql` is already one block, so it can be
 pasted into either editor as is.
