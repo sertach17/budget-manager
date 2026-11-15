@@ -48,17 +48,25 @@ export function DashboardView({ data, today }: { data: BudgetData; today: string
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Spent" value={wholeMoney.format(summary.spent)} note={`of ${wholeMoney.format(summary.budgeted)} budgeted`} />
         <Stat
-          label={left >= 0 ? "Left to spend" : "Over budget"}
-          value={wholeMoney.format(Math.abs(left))}
-          tone={left >= 0 ? "good" : "bad"}
+          label="Spent"
+          value={wholeMoney.format(summary.spent)}
+          note={summary.budgeted > 0 ? `of ${wholeMoney.format(summary.budgeted)} budgeted` : "this month"}
         />
+        {summary.budgeted > 0 ? (
+          <Stat
+            label={left >= 0 ? "Left to spend" : "Over budget"}
+            value={wholeMoney.format(Math.abs(left))}
+            tone={left >= 0 ? "good" : "bad"}
+          />
+        ) : (
+          <Stat label="Budgets" value="Not set" note="coming soon" />
+        )}
         <Stat label="Income" value={wholeMoney.format(summary.income)} note="this month" />
         <Stat label="Net worth" value={wholeMoney.format(summary.netWorth)} note="all accounts" />
       </div>
 
-      <Section title="Budgets">
+      <Section title={summary.budgeted > 0 ? "Budgets" : "Spending by category"}>
         <ul className="space-y-3">
           {summary.byCategory.map(({ category, spent, budget }) => {
             const share = budget ? Math.min(spent / budget, 1) : 1;

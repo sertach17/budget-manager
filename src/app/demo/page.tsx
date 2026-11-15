@@ -2,15 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { easternToday } from "@/lib/dates";
 import { demoData } from "@/lib/demo/data";
 import { DashboardView } from "../dashboard-view";
 
 export const metadata: Metadata = { title: "Demo · Budget Manager" };
-
-// Today's date in Eastern time, as YYYY-MM-DD.
-function easternToday() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
-}
 
 async function DemoDashboard() {
   // Read the date per request, not at build time, so the demo stays current.
