@@ -26,7 +26,7 @@ $q$; end $mig$;
 | `20261115020000_plaid_items.sql` | Nov 15, 2026 |
 | `20261115030000_venmo_email_feed.sql` | Nov 15, 2026 |
 | `20261115040000_gmail_confirm_link.sql` | Nov 15, 2026 |
-| `20261115050000_category_bank_matches.sql` | not yet |
+| `20261115050000_category_bank_matches.sql` | Nov 15, 2026 |
 
 `20261115010000_require_two_factor.sql` is already one block, so it can be
 pasted into either editor as is.
