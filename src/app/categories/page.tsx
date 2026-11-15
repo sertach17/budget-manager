@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
+import { AppHeader } from "../app-header";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { plaidCategoryLabel, PLAID_CODE } from "@/lib/budget/plaid-names";
 import { AddCategoryForm, CategoryItem, type BankCategory } from "./category-forms";
@@ -68,10 +68,8 @@ async function Categories() {
 export default function CategoriesPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <Link href="/" className="text-sm underline">
-        ← Budget Manager
-      </Link>
-      <h1 className="mt-4 text-2xl font-semibold">Categories</h1>
+      <AppHeader active="categories" />
+      <h1 className="mt-6 text-xl font-semibold">Categories</h1>
       <Suspense fallback={<p className="mt-6 text-sm">Loading…</p>}>
         <Categories />
       </Suspense>

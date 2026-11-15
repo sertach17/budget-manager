@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
+import { AppHeader } from "../app-header";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { isPlaidConfigured, plaidEnv } from "@/lib/plaid/client";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -203,12 +203,8 @@ async function Venmo() {
 export default function BanksPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <header>
-        <Link href="/" className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          ← Budget Manager
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Banks</h1>
-      </header>
+      <AppHeader />
+      <h1 className="mt-6 text-xl font-semibold">Banks</h1>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Banks />
       </Suspense>

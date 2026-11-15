@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { budgetDataFromRows } from "@/lib/budget/from-db";
 import { easternToday } from "@/lib/dates";
-import { signOut } from "./actions";
 import { DashboardView } from "./dashboard-view";
+import { AppHeader } from "./app-header";
 
 async function Dashboard() {
   // Sends anyone without a two-factor session to sign in. The proxy checks
@@ -65,7 +65,7 @@ async function Dashboard() {
 
   return (
     <>
-      <DashboardView data={data} today={today} />
+      <DashboardView data={data} today={today} budgetHref="/categories" />
       {categories.data?.length ? null : (
         <p className="mt-6 text-xs text-black/50 dark:text-white/50">
           Categories come from your banks for now. Your own categories and budgets come next.
@@ -78,28 +78,8 @@ async function Dashboard() {
 export default function Home() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Budget Manager</p>
-          <h1 className="text-2xl font-semibold">Your money</h1>
-        </div>
-        <form action={signOut}>
-          <button type="submit" className="rounded-lg border border-black/15 px-3 py-1.5 text-sm dark:border-white/20">
-            Sign out
-          </button>
-        </form>
-      </header>
-      <p className="mt-4 flex gap-4 text-sm">
-        <Link href="/banks" className="underline">
-          Banks
-        </Link>
-        <Link href="/categories" className="underline">
-          Categories
-        </Link>
-        <Link href="/account/password" className="underline">
-          Change password
-        </Link>
-      </p>
+      <AppHeader active="dashboard" />
+      <h1 className="sr-only">Dashboard</h1>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Dashboard />
       </Suspense>

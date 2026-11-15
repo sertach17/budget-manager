@@ -97,3 +97,21 @@ test("your categories pick up bank categories you listed, detailed first", () =>
     ],
   );
 });
+
+test("spending adds up day by day, and today's rows are listed", () => {
+  const data = budgetDataFromRows({
+    accounts: [checking],
+    categories: [{ id: "c1", name: "Groceries", group_name: null, kind: "expense", color: "#16a34a", is_excluded: false }],
+    budgets: [],
+    transactions: [
+      row({ id: "t1", category_id: "c1", posted_on: "2026-11-01", amount: "-40" }),
+      row({ id: "t2", category_id: "c1", posted_on: "2026-11-03", amount: "-10" }),
+      row({ id: "t3", category_id: "c1", posted_on: "2026-11-03", amount: "5" }), // refund
+      row({ id: "t4", posted_on: "2026-11-04", amount: "900", plaid_category: "INCOME_WAGES" }),
+      row({ id: "t5", posted_on: "2026-11-04", amount: "-60", plaid_category: "TRANSFER_OUT_ACCOUNT_TRANSFER" }),
+    ],
+  });
+  const s = summarizeMonth(data, "2026-11-04");
+  assert.deepEqual(s.spentByDay, [40, 40, 45, 45]);
+  assert.deepEqual(s.today.map((t) => t.id).sort(), ["t4", "t5"]);
+});
