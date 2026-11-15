@@ -25,7 +25,7 @@ async function Dashboard() {
       .order("name"),
     supabase.from("transactions").select(columns).gte("posted_on", monthStart).lte("posted_on", today).limit(5000),
     supabase.from("transactions").select(columns).lte("posted_on", today).order("posted_on", { ascending: false }).limit(20),
-    supabase.from("categories").select("id, name, group_name, kind, color, is_excluded"),
+    supabase.from("categories").select("id, name, group_name, kind, color, is_excluded, plaid_categories"),
     supabase.from("budgets").select("category_id, amount, month").or(`month.is.null,month.eq.${monthStart}`),
   ]);
 
@@ -92,6 +92,9 @@ export default function Home() {
       <p className="mt-4 flex gap-4 text-sm">
         <Link href="/banks" className="underline">
           Banks
+        </Link>
+        <Link href="/categories" className="underline">
+          Categories
         </Link>
         <Link href="/account/password" className="underline">
           Change password
