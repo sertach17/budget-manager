@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { AgentLimits } from "../../agents/agent-limits";
 import { Card } from "../../ui";
-import { ConsentButtons } from "./consent-buttons";
+import { AllowAgainButtons, ConsentButtons } from "./consent-buttons";
 
 export const metadata: Metadata = { title: "Connect an AI agent · Budget Manager" };
 
@@ -25,8 +24,29 @@ async function Consent({ searchParams }: { searchParams: Promise<{ authorization
     if (error) console.error("Reading an agent request failed:", error.message);
     return <p className="text-sm">This request expired. Start the connection again from your AI agent.</p>;
   }
-  // You already allowed this agent, so Supabase sends it straight back.
-  if ("redirect_url" in data) redirect(data.redirect_url);
+  // You allowed this agent before, so Supabase already said yes. It still
+  // gets in only after you allow it again here with two-factor.
+  if ("redirect_url" in data) {
+    let host: string | null = null;
+    try {
+      const back = new URL(data.redirect_url);
+      if (back.protocol === "https:" || back.hostname === "localhost") host = back.host;
+    } catch {}
+    if (!host) return <p className="text-sm">This request expired. Start the connection again from your AI agent.</p>;
+    return (
+      <>
+        <p className="text-sm">An AI agent you allowed before wants to connect again.</p>
+        <p className="mt-1 text-xs text-black/50 dark:text-white/50">It goes back to {host} when you allow it.</p>
+        <div className="mt-5">
+          <AgentLimits />
+        </div>
+        <p className="mt-4 text-xs text-black/50 dark:text-white/50">
+          If you didn&apos;t just connect an agent, don&apos;t allow it, and check Settings, Connected agents.
+        </p>
+        <AllowAgainButtons authorizationId={id} returnUrl={data.redirect_url} />
+      </>
+    );
+  }
 
   let returnsTo = data.redirect_uri;
   try {
