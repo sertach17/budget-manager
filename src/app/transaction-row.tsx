@@ -16,7 +16,17 @@ export type RowTransaction = {
 };
 
 // One transaction. Tap it to move it to another of your categories.
-export function TransactionRow({ t, categories }: { t: RowTransaction; categories: { id: string; name: string }[] }) {
+// `onMove` replaces saving to the database; the demo uses it to keep moves
+// in the page only.
+export function TransactionRow({
+  t,
+  categories,
+  onMove,
+}: {
+  t: RowTransaction;
+  categories: { id: string; name: string }[];
+  onMove?: (transactionId: string, categoryId: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState(t.categoryId ?? "");
   const [message, setMessage] = useState<string | null>(null);
@@ -24,6 +34,11 @@ export function TransactionRow({ t, categories }: { t: RowTransaction; categorie
 
   const save = () =>
     startSaving(async () => {
+      if (onMove) {
+        onMove(t.id, choice);
+        setOpen(false);
+        return;
+      }
       const result = await setTransactionCategory(t.id, choice);
       if (result.ok) {
         setOpen(false);

@@ -12,9 +12,15 @@ const links = [
 
 const itemClass = "block w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10";
 
+const demoLinks = [
+  { href: "/demo/banks", label: "Banks" },
+  { href: "/demo/categories", label: "Categories" },
+];
+
 // The three-line button in the corner of the home page. It opens your
-// settings, with Sign out at the end.
-export function SettingsMenu() {
+// settings, with Sign out at the end. In the demo the links stay inside
+// /demo, Change password is off and Leave demo takes Sign out's place.
+export function SettingsMenu({ demo = false }: { demo?: boolean }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -56,17 +62,28 @@ export function SettingsMenu() {
           <p className="px-4 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-black/50 dark:text-white/50">
             Settings
           </p>
-          {links.map((l) => (
+          {(demo ? demoLinks : links).map((l) => (
             <Link key={l.href} href={l.href} className={itemClass} onClick={() => setOpen(false)}>
               {l.label}
             </Link>
           ))}
+          {demo ? (
+            <p className={`${itemClass} cursor-default text-black/40 hover:bg-transparent dark:text-white/40 dark:hover:bg-transparent`}>
+              Change password (off in the demo)
+            </p>
+          ) : null}
           <div className="my-1 border-t border-black/10 dark:border-white/15" />
-          <form action={signOut}>
-            <button type="submit" className={`${itemClass} text-red-600 dark:text-red-400`}>
-              Sign out
-            </button>
-          </form>
+          {demo ? (
+            <Link href="/login" className={`${itemClass} text-red-600 dark:text-red-400`}>
+              Leave demo
+            </Link>
+          ) : (
+            <form action={signOut}>
+              <button type="submit" className={`${itemClass} text-red-600 dark:text-red-400`}>
+                Sign out
+              </button>
+            </form>
+          )}
         </div>
       )}
     </div>
