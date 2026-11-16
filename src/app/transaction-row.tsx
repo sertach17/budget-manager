@@ -3,7 +3,9 @@
 import type { PickCategory } from "@/lib/budget/types";
 import { useState, useTransition } from "react";
 import { markReviewed, setTransactionCategory } from "./transactions/actions";
+import { setTransactionGoal } from "./goals/actions";
 import { CategoryOptions } from "./category-options";
+import { useGoalPicker } from "./goal-picker";
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -16,10 +18,12 @@ export type RowTransaction = {
   color: string;
   categoryId: string | null; // your category, or null when it follows the bank's
   reviewed: boolean;
+  goalId?: string | null; // the goal it's tagged to, if any
 };
 
-// One transaction. Tap it to move it to another of your categories, or to
-// mark it reviewed. `onMove` and `onReview` replace saving to the database;
+// One transaction. Tap it to move it to another of your categories, tag it
+// to one of your goals (it keeps its category), or mark it reviewed.
+// `onMove` and `onReview` replace saving to the database;
 // the demo uses them to keep changes in the page only.
 export function TransactionRow({
   t,
@@ -34,6 +38,8 @@ export function TransactionRow({
 }) {
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState(t.categoryId ?? "");
+  const { goals, onSetGoal } = useGoalPicker();
+  const [goalChoice, setGoalChoice] = useState(t.goalId ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [reviewing, startReviewing] = useTransition();
@@ -56,18 +62,24 @@ export function TransactionRow({
 
   const save = () =>
     startSaving(async () => {
-      if (onMove) {
-        onMove(t.id, choice);
+      const moved = choice !== (t.categoryId ?? "");
+      const tagged = goalChoice !== (t.goalId ?? "");
+      if (onMove || onSetGoal) {
+        if (moved) onMove?.(t.id, choice);
+        if (tagged) onSetGoal?.(t.id, goalChoice);
         setOpen(false);
         return;
       }
-      const result = await setTransactionCategory(t.id, choice);
-      if (result.ok) {
-        setOpen(false);
-        setMessage(null);
-      } else {
-        setMessage(result.message ?? "Couldn't move it.");
+      if (moved) {
+        const result = await setTransactionCategory(t.id, choice);
+        if (!result.ok) return setMessage(result.message ?? "Couldn't move it.");
       }
+      if (tagged) {
+        const result = await setTransactionGoal(t.id, goalChoice);
+        if (!result.ok) return setMessage(result.message);
+      }
+      setOpen(false);
+      setMessage(null);
     });
 
   return (
@@ -108,13 +120,33 @@ export function TransactionRow({
             <option value="">Sort by my bank&apos;s category</option>
             <CategoryOptions categories={categories} />
           </select>
+          {goals.length ? (
+            <>
+              <label className="sr-only" htmlFor={`goal-${t.id}`}>
+                Goal
+              </label>
+              <select
+                id={`goal-${t.id}`}
+                value={goalChoice}
+                onChange={(e) => setGoalChoice(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900"
+              >
+                <option value="">No goal</option>
+                {goals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    Goal: {g.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : null}
           <button
             type="button"
             onClick={save}
             disabled={saving}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Move"}
+            {saving ? "Saving…" : "Save"}
           </button>
           {t.reviewed ? null : (
             <button

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { loadMonth } from "@/lib/budget/load";
 import { DashboardView } from "./dashboard-view";
 import { AppHeader } from "./app-header";
+import { GoalsProvider } from "./goal-picker";
 
 async function Dashboard() {
   const month = await loadMonth();
@@ -27,14 +28,14 @@ async function Dashboard() {
   }
 
   return (
-    <>
+    <GoalsProvider goals={month.yourGoals}>
       <DashboardView data={data} today={today} yourCategories={month.yourCategories} />
       {hasCategories ? null : (
         <p className="mt-6 text-xs text-black/50 dark:text-white/50">
           Categories come from your banks for now. Your own categories and budgets come next.
         </p>
       )}
-    </>
+    </GoalsProvider>
   );
 }
 

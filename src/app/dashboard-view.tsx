@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { allGoalProgress } from "@/lib/budget/goals";
 import { summarizeMonth } from "@/lib/budget/summary";
 import type { BudgetData, PickCategory } from "@/lib/budget/types";
 import { toRows } from "./budget/rows";
 import { BudgetCard } from "./budget-card";
+import { GoalCard } from "./goals/goal-card";
 import { ReviewList } from "./review-list";
 import { TransactionRow } from "./transaction-row";
 
@@ -52,6 +54,8 @@ export function DashboardView({
   onReview?: (transactionIds: string[]) => void;
 }) {
   const summary = summarizeMonth(data, today);
+  // The goals with the closest dates first.
+  const goals = allGoalProgress(data, today).slice(0, 3);
 
   return (
     <div>
@@ -80,6 +84,25 @@ export function DashboardView({
           ›
         </span>
       </Link>
+
+      <Section title="Goals" href={`${base}/goals`}>
+        {goals.length ? (
+          <ul className="space-y-3">
+            {goals.map((p) => (
+              <li key={p.goal.id}>
+                <GoalCard progress={p} href={`${base}/goals/${encodeURIComponent(p.goal.id)}`} compact />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Link
+            href={`${base}/goals`}
+            className="block rounded-2xl border border-dashed border-black/15 p-4 text-sm text-black/60 hover:bg-black/[0.02] dark:border-white/20 dark:text-white/60 dark:hover:bg-white/[0.03]"
+          >
+            Set a goal for something you&apos;re saving toward ›
+          </Link>
+        )}
+      </Section>
 
       <Section title="Recent transactions" href={`${base}/transactions`}>
         <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">

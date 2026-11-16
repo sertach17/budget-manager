@@ -6,6 +6,7 @@ const tabs = [
   { id: "transactions", href: "/transactions", label: "Transactions" },
   { id: "budget", href: "/budget", label: "Budget" },
   { id: "accounts", href: "/accounts", label: "Accounts" },
+  { id: "goals", href: "/goals", label: "Goals" },
 ] as const;
 
 export type TabId = (typeof tabs)[number]["id"];

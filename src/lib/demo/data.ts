@@ -1,4 +1,4 @@
-import type { Account, Budget, BudgetData, Category, Transaction } from "@/lib/budget/types";
+import type { Account, Budget, BudgetData, Category, Goal, Transaction } from "@/lib/budget/types";
 
 // Made-up data for the public demo. Nothing here comes from a real person or
 // bank, and the demo never reads or writes the database.
@@ -158,9 +158,27 @@ export function demoData(today: string): BudgetData {
       ...t,
       pending: t.accountId === "acc-card" && t.amount < 0 && t.postedOn >= pendingCutoff,
       reviewed: t.postedOn < reviewCutoff,
+      goalId: demoGoalTag(t),
     }));
 
-  return { accounts: [...accounts, ...demoOwnAccounts], categories, transactions, budgets };
+  return { accounts: [...accounts, ...demoOwnAccounts], categories, transactions, budgets, goals: demoGoals(today) };
+}
+
+// Made-up goals: a trip with part of the savings account set aside, an
+// emergency fund with more of it, and one saved by hand. The demo's monthly
+// transfers into savings are tagged to the trip (see demoGoalTags).
+export function demoGoals(today: string): Goal[] {
+  const year = Number(today.slice(0, 4)) + 1;
+  return [
+    { id: "goal-trip", name: "Summer vacation", target: 6000, targetDate: `${year}-06-30`, accountId: "acc-savings", setAside: 2350 },
+    { id: "goal-emergency", name: "Emergency fund", target: 10000, targetDate: null, accountId: "acc-savings", setAside: 5000 },
+    { id: "goal-laptop", name: "New laptop", target: 1200, targetDate: `${year}-03-31`, accountId: null, setAside: 300 },
+  ];
+}
+
+// Which made-up transactions start out tagged to a goal.
+export function demoGoalTag(t: Transaction): string | null {
+  return t.accountId === "acc-savings" && t.description === "Transfer from checking" ? "goal-trip" : null;
 }
 
 // A made-up Apple Card style export for the demo's upload page, dated in the

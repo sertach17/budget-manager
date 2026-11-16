@@ -10,6 +10,8 @@ import { AppHeader } from "../app-header";
 import { BudgetView } from "../budget/budget-view";
 import { CategoryBudgetView } from "../budget/category-view";
 import { DashboardView } from "../dashboard-view";
+import { GoalView } from "../goals/goal-view";
+import { GoalsView } from "../goals/goals-view";
 import { TransactionsView } from "../transactions/transactions-view";
 import { StatementUpload } from "../upload/statement-upload";
 import { demoScreenshotRows, demoStatementCsv } from "@/lib/demo/data";
@@ -132,6 +134,39 @@ export function DemoAccount() {
             message: "Reading real screenshots is off in the demo. Try the made-up sample screenshot.",
           }),
         }}
+      />
+    </>
+  );
+}
+
+export function DemoGoals() {
+  const { data, today, createGoal } = useDemo();
+  return (
+    <>
+      <AppHeader demo active="goals" />
+      <h1 className="sr-only">Goals</h1>
+      <GoalsView data={data} today={today} base="/demo" onCreate={createGoal} />
+    </>
+  );
+}
+
+export function DemoGoal() {
+  const { data, today, yourCategories, move, review, updateGoal, deleteGoal } = useDemo();
+  const params = useParams<{ id: string }>();
+  const id = decodeURIComponent(params.id ?? "");
+  return (
+    <>
+      <AppHeader demo active="goals" />
+      <GoalView
+        data={data}
+        goalId={id}
+        today={today}
+        base="/demo"
+        yourCategories={yourCategories}
+        onMove={move}
+        onReview={review}
+        onUpdate={updateGoal}
+        onDelete={deleteGoal}
       />
     </>
   );

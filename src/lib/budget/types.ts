@@ -40,6 +40,8 @@ export type Transaction = {
   pending: boolean;
   // False while it waits under "Pending to review"; left out means reviewed.
   reviewed?: boolean;
+  // The goal it's tagged to, if any. It keeps its category as well.
+  goalId?: string | null;
 };
 
 export type Budget = {
@@ -47,12 +49,28 @@ export type Budget = {
   amount: number; // monthly
 };
 
+// Money you're saving toward something. A goal can follow one account:
+// setAside is how much of its balance counts, or null for all of it. With no
+// account, setAside is what you've already saved, typed by hand.
+export type Goal = {
+  id: string;
+  name: string;
+  target: number;
+  targetDate: string | null; // YYYY-MM-DD
+  accountId: string | null;
+  setAside: number | null;
+};
+
 export type BudgetData = {
   accounts: Account[];
   categories: Category[];
   transactions: Transaction[];
   budgets: Budget[];
+  goals?: Goal[];
 };
+
+// One of your goals, as the goal picker shows it.
+export type PickGoal = { id: string; name: string };
 
 // One of your categories, as the move list shows it.
 export type PickCategory = { id: string; name: string; kind?: string };
