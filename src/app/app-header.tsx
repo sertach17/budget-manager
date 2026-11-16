@@ -4,7 +4,7 @@ import { SettingsMenu } from "./settings-menu";
 const tabs = [
   { id: "dashboard", href: "/", label: "Dashboard" },
   { id: "transactions", href: "/transactions", label: "Transactions" },
-  { id: "categories", href: "/categories", label: "Categories" },
+  { id: "budget", href: "/budget", label: "Budget" },
 ] as const;
 
 export type TabId = (typeof tabs)[number]["id"];

@@ -182,6 +182,7 @@ export function budgetDataFromRows(rows: {
       id: t.id,
       accountId: t.account_id,
       categoryId,
+      chosenCategoryId: t.category_id && categories.has(t.category_id) ? t.category_id : null,
       postedOn: t.posted_on,
       description: t.merchant || t.description,
       merchant: t.merchant,

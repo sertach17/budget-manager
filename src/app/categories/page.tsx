@@ -68,7 +68,7 @@ async function Categories() {
 export default function CategoriesPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <AppHeader active="categories" />
+      <AppHeader />
       <h1 className="mt-6 text-xl font-semibold">Categories</h1>
       <Suspense fallback={<p className="mt-6 text-sm">Loading…</p>}>
         <Categories />
