@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { loadMonth } from "@/lib/budget/load";
 import { DashboardView } from "./dashboard-view";
 import { AppHeader } from "./app-header";
+import { BankNotice } from "./bank-notice";
 import { GoalsProvider } from "./goal-picker";
 
 async function Dashboard() {
@@ -44,6 +45,9 @@ export default function Home() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
       <AppHeader active="dashboard" />
       <h1 className="sr-only">Dashboard</h1>
+      <Suspense fallback={null}>
+        <BankNotice />
+      </Suspense>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Dashboard />
       </Suspense>

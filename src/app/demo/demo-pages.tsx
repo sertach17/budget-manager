@@ -200,12 +200,25 @@ export function DemoBanks() {
       >
         Connect a bank
       </button>
-      <p className="mt-2 text-xs text-black/50 dark:text-white/50">Connecting a bank is off in the demo.</p>
+      <p className="mt-2 text-xs text-black/50 dark:text-white/50">
+        Connecting a bank is off in the demo. Connected banks sync by themselves every morning around 6 AM.
+      </p>
       <ul className="mt-8 space-y-4">
         {institutions.map((name) => (
           <li key={name} className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
-            <p className="font-medium">{name}</p>
-            <p className="text-xs text-black/50 dark:text-white/50">Made-up accounts</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium">{name}</p>
+                <p className="text-xs text-black/50 dark:text-white/50">Made-up accounts · last synced today, 6:02 AM</p>
+              </div>
+              <button
+                type="button"
+                disabled
+                className="rounded-lg border border-black/15 px-3 py-1.5 text-sm opacity-50 dark:border-white/20"
+              >
+                Sync now
+              </button>
+            </div>
             <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/10">
               {linked
                 .filter((a) => (a.institution ?? "Bank") === name)
@@ -306,6 +319,7 @@ function demoAgents(today: string): { agents: ConnectedAgent[]; changes: AgentCh
       { clientId: "demo-helper", name: "Budget Helper", website: null, connectedAt: at(2, "18:40") },
     ],
     changes: [
+      { id: "c0", clientId: "demo-claude", tool: "sync_banks", summary: "Started a bank sync.", at: at(0, "08:06") },
       { id: "c1", clientId: "demo-claude", tool: "mark_reviewed", summary: "Marked 4 transactions reviewed.", at: at(0, "08:05") },
       { id: "c2", clientId: "demo-claude", tool: "set_transaction_category", summary: "Moved Corner Market ($23.18) to Groceries.", at: at(0, "08:04") },
       { id: "c3", clientId: "demo-helper", tool: "set_budget", summary: "Set Dining out to $250.00 every month.", at: at(1, "21:30") },
