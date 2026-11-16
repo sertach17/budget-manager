@@ -4,21 +4,11 @@ import { requireTwoFactorUser } from "@/lib/auth";
 import { budgetDataFromRows } from "@/lib/budget/from-db";
 import { easternToday } from "@/lib/dates";
 import { AppHeader } from "../app-header";
-import { toRows } from "../budget/rows";
-import { TransactionRow } from "../transaction-row";
+import { TransactionsView } from "./transactions-view";
 
 export const metadata: Metadata = { title: "Transactions · Budget Manager" };
 
 const SHOWN = 300;
-
-function formatDay(date: string) {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 async function Transactions() {
   // Row-level security limits every query to this user's own rows.
@@ -54,29 +44,14 @@ async function Transactions() {
   }
 
   const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim() }));
-  const days = new Map<string, typeof data.transactions>();
-  for (const t of data.transactions) {
-    const list = days.get(t.postedOn) ?? [];
-    list.push(t);
-    days.set(t.postedOn, list);
-  }
 
   return (
-    <div className="mt-6 space-y-6">
-      {[...days].map(([day, list]) => (
-        <section key={day}>
-          <h2 className="text-sm font-semibold text-black/60 dark:text-white/60">{formatDay(day)}</h2>
-          <ul className="mt-2 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
-            {toRows(data, list, "category").map((row) => (
-              <TransactionRow key={row.id} t={row} categories={yourCategories} />
-            ))}
-          </ul>
-        </section>
-      ))}
+    <>
+      <TransactionsView data={data} transactions={data.transactions} yourCategories={yourCategories} />
       {(transactions.data?.length ?? 0) >= SHOWN ? (
-        <p className="text-xs text-black/50 dark:text-white/50">Showing your latest {SHOWN} transactions.</p>
+        <p className="mt-6 text-xs text-black/50 dark:text-white/50">Showing your latest {SHOWN} transactions.</p>
       ) : null}
-    </div>
+    </>
   );
 }
 
