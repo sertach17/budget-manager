@@ -7,6 +7,7 @@ import type { CheckResult, SaveResult } from "@/app/upload/actions";
 import type { AddResult } from "@/app/accounts/actions";
 import { NEW_INCOME } from "@/app/transactions/new-income";
 import { readManualTransaction, type ManualInput } from "@/lib/budget/manual-transaction";
+import { balanceChange } from "@/lib/budget/own-balance";
 import { plaidGroup } from "@/lib/budget/from-db";
 import { demoData, demoOwnAccounts } from "@/lib/demo/data";
 import { statementFingerprints, type StatementFormat, type StatementRow } from "@/lib/statements/parse";
@@ -78,6 +79,13 @@ function toAccount(id: string, input: OwnAccountInput): Account | string {
   };
 }
 
+// A day before or after a YYYY-MM-DD date.
+function shiftDay(day: string, by: number) {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + by);
+  return d.toISOString().slice(0, 10);
+}
+
 const DemoContext = createContext<DemoState | null>(null);
 
 export function DemoProvider({ today, children }: { today: string; children: React.ReactNode }) {
@@ -87,19 +95,42 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
   const [ownAccounts, setOwnAccounts] = useState<Account[]>(demoOwnAccounts);
   const [uploaded, setUploaded] = useState<Transaction[]>([]);
   const [uploadedPrints, setUploadedPrints] = useState<ReadonlySet<string>>(() => new Set());
+  // The day each own account's balance was set. On the real site that's the
+  // day you type it and only later transactions move it; the demo starts a
+  // little earlier so its made-up recent transactions show the balance move.
+  const [balanceSetOn, setBalanceSetOn] = useState<Record<string, string>>(() =>
+    Object.fromEntries(demoOwnAccounts.map((a) => [a.id, shiftDay(today, -7)])),
+  );
+  const moveBalance = useCallback(
+    (accountId: string, rows: { postedOn: string; amount: number }[]) => {
+      setOwnAccounts((current) =>
+        current.map((a) => {
+          if (a.id !== accountId) return a;
+          const change = balanceChange(a.type, balanceSetOn[a.id] ?? null, rows);
+          return change ? { ...a, currentBalance: Math.round((a.currentBalance + change) * 100) / 100 } : a;
+        }),
+      );
+    },
+    [balanceSetOn],
+  );
 
   const addAccount = useCallback(async (input: OwnAccountInput): Promise<OwnAccountResult> => {
     const account = toAccount(`acc-own-${Date.now()}`, input);
     if (typeof account === "string") return { ok: false, message: account };
     setOwnAccounts((current) => [...current, account]);
+    setBalanceSetOn((current) => ({ ...current, [account.id]: shiftDay(today, -1) }));
     return { ok: true, message: `Added ${account.name}. The demo forgets it when you reload.` };
-  }, []);
+  }, [today]);
   const updateAccount = useCallback(async (id: string, input: OwnAccountInput): Promise<OwnAccountResult> => {
     const account = toAccount(id, input);
     if (typeof account === "string") return { ok: false, message: account };
+    const before = ownAccounts.find((a) => a.id === id);
     setOwnAccounts((current) => current.map((a) => (a.id === id ? account : a)));
+    if (before && before.currentBalance !== account.currentBalance) {
+      setBalanceSetOn((current) => ({ ...current, [id]: shiftDay(today, -1) }));
+    }
     return { ok: true, message: "Saved." };
-  }, []);
+  }, [ownAccounts, today]);
   const deleteAccount = useCallback(async (id: string): Promise<OwnAccountResult> => {
     setOwnAccounts((current) => current.filter((a) => a.id !== id));
     return { ok: true, message: "Deleted." };
@@ -148,6 +179,7 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
         }));
       setUploaded((current) => [...current, ...added]);
       setUploadedPrints((current) => new Set([...current, ...prints]));
+      moveBalance(account.id, added);
       const already = input.rows.length - added.length;
       return {
         ok: true,
@@ -158,7 +190,7 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
         }. The demo forgets them when you reload.`,
       };
     },
-    [ownAccounts, existing],
+    [ownAccounts, existing, moveBalance],
   );
 
   // A transaction typed in, checked the way the signed-in site checks it.
@@ -185,9 +217,10 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
         },
       ]);
       setUploadedPrints((current) => new Set([...current, print]));
+      if (ownAccounts.some((a) => a.id === account.id)) moveBalance(account.id, [row]);
       return { ok: true, message: `Added ${row.description} to ${account.name}. The demo forgets it when you reload.` };
     },
-    [base, ownAccounts, today],
+    [base, ownAccounts, today, moveBalance],
   );
 
   const review = useCallback((transactionIds: string[]) => {
