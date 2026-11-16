@@ -5,7 +5,7 @@ import { balanceChange, easternDay } from "./own-balance";
 type Supabase = Awaited<ReturnType<typeof requireTwoFactorUser>>["supabase"];
 
 // After transactions are added to one of your own accounts, moves its
-// balance by the ones dated after you last set it. Linked banks send their
+// balance by the ones dated the day you last set it or later. Linked banks send their
 // own balance, so they're left alone. The day you set the balance stays the
 // same, so typing a balance on the Banks page is still the starting point.
 export async function moveOwnBalance(supabase: Supabase, accountId: string, rows: { postedOn: string; amount: number }[]) {

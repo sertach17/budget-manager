@@ -1,6 +1,7 @@
 // How a transaction you add to one of your own accounts (like Apple Card)
 // changes the balance you typed. The balance already covers everything up to
-// the day you set it, so only transactions dated after that day move it.
+// the moment you set it, so transactions added after that and dated that
+// day or later move it.
 // Money out lowers a bank balance and raises what you owe on a card; money
 // in (a payment or refund) does the opposite. The category doesn't matter.
 
@@ -19,7 +20,7 @@ export function balanceChange(
   const owed = accountType === "credit" || accountType === "loan";
   let change = 0;
   for (const r of rows) {
-    if (balanceSetOn && r.postedOn <= balanceSetOn) continue;
+    if (balanceSetOn && r.postedOn < balanceSetOn) continue;
     change += owed ? -r.amount : r.amount;
   }
   return Math.round(change * 100) / 100;

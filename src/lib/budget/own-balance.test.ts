@@ -14,14 +14,14 @@ test("a card payment or refund lowers what the card owes", () => {
   assert.equal(balanceChange("credit", "2026-11-16", [{ postedOn: "2026-11-18", amount: 120.5 }]), -120.5);
 });
 
-test("only transactions dated after the day the balance was set count", () => {
+test("only transactions dated the day the balance was set or later count", () => {
   const rows = [
     { postedOn: "2026-11-15", amount: -10 },
     { postedOn: "2026-11-16", amount: -20 },
     { postedOn: "2026-11-17", amount: -30.1 },
     { postedOn: "2026-11-17", amount: 5 },
   ];
-  assert.equal(balanceChange("checking", "2026-11-16", rows), -25.1);
+  assert.equal(balanceChange("checking", "2026-11-16", rows), -45.1);
   assert.equal(balanceChange("checking", null, rows), -55.1);
 });
 

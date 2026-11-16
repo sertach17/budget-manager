@@ -82,7 +82,7 @@ function Fields({ value, onChange }: { value: OwnAccountInput; onChange: (v: Own
         </span>
         <input value={value.balance} onChange={set("balance")} inputMode="decimal" placeholder="0.00" className={input} />
         <span className="mt-1 block text-xs text-black/50 dark:text-white/50">
-          Transactions you add dated after today change it by themselves. Type a new one here anytime to correct it.
+          Transactions you add from now on, dated today or later, change it by themselves. Type a new one here anytime to correct it.
         </span>
       </label>
     </div>
