@@ -135,7 +135,9 @@ export function StatementUpload({
       return;
     }
     const note = result.pendingLeftOut
-      ? `${result.pendingLeftOut} pending ${result.pendingLeftOut === 1 ? "one is" : "ones are"} left out until they post.`
+      ? result.pendingLeftOut === 1
+        ? "1 pending one is left out until it posts."
+        : `${result.pendingLeftOut} pending ones are left out until they post.`
       : undefined;
     return show(fileName, "", { format: "screenshot", rows: result.rows, skipped: 0, flipped: null }, forAccount, note);
   };
