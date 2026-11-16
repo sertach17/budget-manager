@@ -97,3 +97,48 @@ test("your categories pick up bank categories you listed, detailed first", () =>
     ],
   );
 });
+
+test("spending adds up day by day, and today's rows are listed", () => {
+  const data = budgetDataFromRows({
+    accounts: [checking],
+    categories: [{ id: "c1", name: "Groceries", group_name: null, kind: "expense", color: "#16a34a", is_excluded: false }],
+    budgets: [],
+    transactions: [
+      row({ id: "t1", category_id: "c1", posted_on: "2026-11-01", amount: "-40" }),
+      row({ id: "t2", category_id: "c1", posted_on: "2026-11-03", amount: "-10" }),
+      row({ id: "t3", category_id: "c1", posted_on: "2026-11-03", amount: "5" }), // refund
+      row({ id: "t4", posted_on: "2026-11-04", amount: "900", plaid_category: "INCOME_WAGES" }),
+      row({ id: "t5", posted_on: "2026-11-04", amount: "-60", plaid_category: "TRANSFER_OUT_ACCOUNT_TRANSFER" }),
+    ],
+  });
+  const s = summarizeMonth(data, "2026-11-04");
+  assert.deepEqual(s.spentByDay, [40, 40, 45, 45]);
+  assert.deepEqual(s.today.map((t) => t.id).sort(), ["t4", "t5"]);
+});
+
+test("with your own Other category, unmatched spending goes there, not to bank-made categories", () => {
+  const data = budgetDataFromRows({
+    accounts: [checking],
+    categories: [
+      { id: "c1", name: "Other", group_name: null, kind: "expense", color: "#6b7280", is_excluded: false },
+      { id: "c2", name: "Mortgage ", group_name: null, kind: "expense", color: "#000", is_excluded: false, plaid_categories: ["LOAN_PAYMENTS_MORTGAGE_PAYMENT"] },
+    ],
+    budgets: [],
+    transactions: [
+      row({ id: "t1", amount: "-2656", plaid_category: "LOAN_PAYMENTS_MORTGAGE_PAYMENT" }),
+      row({ id: "t2", amount: "-243.57", plaid_category: "LOAN_PAYMENTS_PERSONAL_LOAN_PAYMENT" }),
+      row({ id: "t3", amount: "-15" }), // no bank category
+      row({ id: "t4", amount: "-300", plaid_category: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT" }),
+      row({ id: "t5", amount: "2100", plaid_category: "INCOME_WAGES" }),
+    ],
+  });
+  const s = summarizeMonth(data, "2026-11-15");
+  assert.deepEqual(
+    s.byCategory.map((c) => [c.category.name, c.spent]),
+    [
+      ["Mortgage ", 2656],
+      ["Other", 258.57],
+    ],
+  );
+  assert.equal(s.income, 2100);
+});

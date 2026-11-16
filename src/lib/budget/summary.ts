@@ -15,6 +15,10 @@ export type MonthSummary = {
   budgeted: number;
   byCategory: CategorySpend[];
   recent: Transaction[];
+  today: Transaction[]; // everything posted today, newest bank order kept
+  // Spending so far this month, added up day by day: spentByDay[0] is the
+  // total at the end of day 1, and the last entry is today's total.
+  spentByDay: number[];
   netWorth: number;
 };
 
@@ -40,6 +44,8 @@ export function summarizeMonth(data: BudgetData, today: string, recentCount = 8)
 
   let income = 0;
   const spentByCategory = new Map<string, number>();
+  const dayOfMonth = Number(today.slice(8, 10));
+  const spentOnDay = new Array<number>(dayOfMonth).fill(0);
   for (const t of thisMonth) {
     const category = t.categoryId ? categories.get(t.categoryId) : undefined;
     if (category?.isExcluded || category?.kind === "transfer") continue;
@@ -48,6 +54,7 @@ export function summarizeMonth(data: BudgetData, today: string, recentCount = 8)
     } else if (category) {
       // Refunds (amount > 0) in an expense category lower its spending.
       spentByCategory.set(category.id, (spentByCategory.get(category.id) ?? 0) - t.amount);
+      spentOnDay[Number(t.postedOn.slice(8, 10)) - 1] -= t.amount;
     }
   }
 
@@ -66,6 +73,9 @@ export function summarizeMonth(data: BudgetData, today: string, recentCount = 8)
     .sort((a, b) => (a.postedOn === b.postedOn ? a.id.localeCompare(b.id) : b.postedOn.localeCompare(a.postedOn)))
     .slice(0, recentCount);
 
+  let runningTotal = 0;
+  const spentByDay = spentOnDay.map((amount) => round((runningTotal += amount)));
+
   return {
     month,
     daysInMonth,
@@ -75,6 +85,8 @@ export function summarizeMonth(data: BudgetData, today: string, recentCount = 8)
     budgeted: round(byCategory.reduce((sum, row) => sum + (row.budget ?? 0), 0)),
     byCategory,
     recent,
+    today: data.transactions.filter((t) => t.postedOn === today),
+    spentByDay,
     netWorth: round(data.accounts.reduce((sum, a) => sum + signedBalance(a), 0)),
   };
 }

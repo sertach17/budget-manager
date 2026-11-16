@@ -1,8 +1,9 @@
 import { summarizeMonth } from "@/lib/budget/summary";
 import type { BudgetData } from "@/lib/budget/types";
+import { BudgetCard } from "./budget-card";
 
-// The main dashboard. It only takes data, so the demo page and (later) the
-// signed-in home page can share it.
+// The main dashboard. It only takes data, so the demo page and the
+// signed-in home page share it.
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const wholeMoney = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -15,13 +16,11 @@ function formatDay(date: string) {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-function Stat({ label, value, note, tone }: { label: string; value: string; note?: string; tone?: "good" | "bad" }) {
-  const toneClass =
-    tone === "bad" ? "text-red-600 dark:text-red-400" : tone === "good" ? "text-emerald-600 dark:text-emerald-400" : "";
+function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
       <p className="text-xs font-medium uppercase tracking-wide text-black/50 dark:text-white/50">{label}</p>
-      <p className={`mt-1 text-xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
       {note ? <p className="mt-0.5 text-xs text-black/50 dark:text-white/50">{note}</p> : null}
     </div>
   );
@@ -36,9 +35,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export function DashboardView({ data, today }: { data: BudgetData; today: string }) {
+// `budgetHref` makes the budget card open that page; the demo leaves it out.
+export function DashboardView({ data, today, budgetHref }: { data: BudgetData; today: string; budgetHref?: string }) {
   const summary = summarizeMonth(data, today);
-  const left = summary.budgeted - summary.spent;
   const categories = new Map(data.categories.map((c) => [c.id, c]));
 
   return (
@@ -47,21 +46,34 @@ export function DashboardView({ data, today }: { data: BudgetData; today: string
         {formatMonth(summary.month)} · {summary.daysLeft} {summary.daysLeft === 1 ? "day" : "days"} left
       </p>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat
-          label="Spent"
-          value={wholeMoney.format(summary.spent)}
-          note={summary.budgeted > 0 ? `of ${wholeMoney.format(summary.budgeted)} budgeted` : "this month"}
-        />
-        {summary.budgeted > 0 ? (
-          <Stat
-            label={left >= 0 ? "Left to spend" : "Over budget"}
-            value={wholeMoney.format(Math.abs(left))}
-            tone={left >= 0 ? "good" : "bad"}
-          />
+      <div className="mt-3">
+        <BudgetCard summary={summary} href={budgetHref} />
+      </div>
+
+      <Section title="So far today">
+        {summary.today.length ? (
+          <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+            {summary.today.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <span className="min-w-0 truncate">
+                  {t.description}
+                  {t.pending ? <span className="text-black/50 dark:text-white/50"> · Pending</span> : null}
+                </span>
+                <span className={`shrink-0 tabular-nums ${t.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                  {t.amount > 0 ? "+" : ""}
+                  {money.format(t.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <Stat label="Budgets" value="Not set" note="coming soon" />
+          <p className="rounded-2xl border border-dashed border-black/15 px-4 py-3 text-sm text-black/60 dark:border-white/20 dark:text-white/60">
+            Nothing yet today.
+          </p>
         )}
+      </Section>
+
+      <div className="mt-8 grid grid-cols-2 gap-3">
         <Stat label="Income" value={wholeMoney.format(summary.income)} note="this month" />
         <Stat label="Net worth" value={wholeMoney.format(summary.netWorth)} note="all accounts" />
       </div>
