@@ -101,10 +101,37 @@ export async function syncPlaidItem(admin: SupabaseClient, item: PlaidItemRow) {
           // Plaid gives every transaction its own id, so it is the fingerprint.
           fingerprint: `plaid:${t.transaction_id}`,
         }));
+      // A pending transaction that posts comes back under a new id. Read the
+      // pending row's review mark and hand-picked category before it goes,
+      // so the posted one doesn't wait for review again.
+      const postedFrom = new Map(
+        page.added
+          .filter((t) => t.pending_transaction_id && accountIds.has(t.account_id))
+          .map((t) => [t.pending_transaction_id!, t.transaction_id]),
+      );
+      const { data: carried, error: carriedError } = postedFrom.size
+        ? await admin
+            .from("transactions")
+            .select("plaid_transaction_id, reviewed_at, category_id")
+            .eq("user_id", item.user_id)
+            .in("plaid_transaction_id", [...postedFrom.keys()])
+        : { data: [], error: null };
+      if (carriedError) throw new Error(`Reading pending transactions failed: ${carriedError.message}`);
+
       if (rows.length) {
         const { error } = await admin.from("transactions").upsert(rows, { onConflict: "plaid_transaction_id" });
         if (error) throw new Error(`Saving transactions failed: ${error.message}`);
         added += page.added.length;
+      }
+
+      for (const pending of carried ?? []) {
+        if (!pending.reviewed_at && !pending.category_id) continue;
+        const { error } = await admin
+          .from("transactions")
+          .update({ reviewed_at: pending.reviewed_at, category_id: pending.category_id })
+          .eq("user_id", item.user_id)
+          .eq("plaid_transaction_id", postedFrom.get(pending.plaid_transaction_id as string)!);
+        if (error) throw new Error(`Carrying over a pending transaction failed: ${error.message}`);
       }
 
       const removedIds = page.removed.map((r) => r.transaction_id).filter(Boolean);

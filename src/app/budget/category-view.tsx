@@ -17,6 +17,7 @@ export function CategoryBudgetView({
   yourCategories,
   base = "",
   onMove,
+  onReview,
 }: {
   data: BudgetData;
   today: string;
@@ -24,6 +25,7 @@ export function CategoryBudgetView({
   yourCategories: { id: string; name: string }[];
   base?: string;
   onMove?: (transactionId: string, categoryId: string) => void;
+  onReview?: (transactionIds: string[]) => void;
 }) {
   const category = data.categories.find((c) => c.id === categoryId);
   if (!category) {
@@ -66,7 +68,7 @@ export function CategoryBudgetView({
       {rows.length ? (
         <ul className="mt-4 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
           {rows.map((row) => (
-            <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} />
+            <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} onReview={onReview} />
           ))}
         </ul>
       ) : (

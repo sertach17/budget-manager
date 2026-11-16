@@ -27,6 +27,7 @@ export type TransactionRow = {
   amount: number | string;
   pending: boolean;
   plaid_category: string | null;
+  reviewed_at?: string | null; // null = not reviewed yet
 };
 
 export type CategoryRow = {
@@ -188,6 +189,7 @@ export function budgetDataFromRows(rows: {
       merchant: t.merchant,
       amount: num(t.amount),
       pending: t.pending,
+      reviewed: t.reviewed_at !== null,
     });
   }
 

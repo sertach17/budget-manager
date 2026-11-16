@@ -16,24 +16,31 @@ const wholeMoney = new Intl.NumberFormat("en-US", { style: "currency", currency:
 const kindLabel: Record<string, string> = { expense: "Spending", income: "Income", transfer: "Transfer (not counted)" };
 
 export function DemoDashboard() {
-  const { data, today } = useDemo();
+  const { data, today, yourCategories, move, review } = useDemo();
   return (
     <>
       <AppHeader demo active="dashboard" />
       <h1 className="sr-only">Dashboard</h1>
-      <DashboardView data={data} today={today} budgetHref="/demo/budget" />
+      <DashboardView
+        data={data}
+        today={today}
+        budgetHref="/demo/budget"
+        yourCategories={yourCategories}
+        onMove={move}
+        onReview={review}
+      />
     </>
   );
 }
 
 export function DemoTransactions() {
-  const { data, yourCategories, move } = useDemo();
+  const { data, yourCategories, move, review } = useDemo();
   const newestFirst = [...data.transactions].sort((a, b) => b.postedOn.localeCompare(a.postedOn) || a.id.localeCompare(b.id));
   return (
     <>
       <AppHeader demo active="transactions" />
       <h1 className="sr-only">Transactions</h1>
-      <TransactionsView data={data} transactions={newestFirst} yourCategories={yourCategories} onMove={move} />
+      <TransactionsView data={data} transactions={newestFirst} yourCategories={yourCategories} onMove={move} onReview={review} />
     </>
   );
 }
@@ -50,13 +57,13 @@ export function DemoBudget() {
 }
 
 export function DemoCategoryBudget() {
-  const { data, today, yourCategories, move } = useDemo();
+  const { data, today, yourCategories, move, review } = useDemo();
   const params = useParams<{ id: string }>();
   const id = decodeURIComponent(params.id ?? "");
   return (
     <>
       <AppHeader demo active="budget" />
-      <CategoryBudgetView data={data} today={today} categoryId={id} yourCategories={yourCategories} base="/demo" onMove={move} />
+      <CategoryBudgetView data={data} today={today} categoryId={id} yourCategories={yourCategories} base="/demo" onMove={move} onReview={review} />
     </>
   );
 }

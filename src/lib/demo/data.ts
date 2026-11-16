@@ -134,7 +134,8 @@ function monthTransactions(year: number, month: number): Transaction[] {
 }
 
 // Demo data as of `today` (YYYY-MM-DD). The last two days' card purchases
-// show as pending, like a real bank feed.
+// show as pending, like a real bank feed, and the last three days'
+// transactions wait under "Pending to review".
 export function demoData(today: string): BudgetData {
   const [year, month] = today.split("-").map(Number);
   const previous = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
@@ -142,10 +143,16 @@ export function demoData(today: string): BudgetData {
   const pendingFrom = new Date(`${today}T00:00:00Z`);
   pendingFrom.setUTCDate(pendingFrom.getUTCDate() - 1);
   const pendingCutoff = pendingFrom.toISOString().slice(0, 10);
+  pendingFrom.setUTCDate(pendingFrom.getUTCDate() - 1);
+  const reviewCutoff = pendingFrom.toISOString().slice(0, 10);
 
   const transactions = [...monthTransactions(previous.year, previous.month), ...monthTransactions(year, month)]
     .filter((t) => t.postedOn <= today)
-    .map((t) => ({ ...t, pending: t.accountId === "acc-card" && t.amount < 0 && t.postedOn >= pendingCutoff }));
+    .map((t) => ({
+      ...t,
+      pending: t.accountId === "acc-card" && t.amount < 0 && t.postedOn >= pendingCutoff,
+      reviewed: t.postedOn < reviewCutoff,
+    }));
 
   return { accounts, categories, transactions, budgets };
 }

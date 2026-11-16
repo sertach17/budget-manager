@@ -1,6 +1,8 @@
 import { summarizeMonth } from "@/lib/budget/summary";
 import type { BudgetData } from "@/lib/budget/types";
+import { toRows } from "./budget/rows";
 import { BudgetCard } from "./budget-card";
+import { ReviewList } from "./review-list";
 
 // The main dashboard. It only takes data, so the demo page and the
 // signed-in home page share it.
@@ -35,8 +37,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-// `budgetHref` makes the budget card open that page; the demo leaves it out.
-export function DashboardView({ data, today, budgetHref }: { data: BudgetData; today: string; budgetHref?: string }) {
+// `budgetHref` makes the budget card open that page. `onMove` and `onReview`
+// keep changes in the page instead of the database (the demo uses them).
+export function DashboardView({
+  data,
+  today,
+  budgetHref,
+  yourCategories,
+  onMove,
+  onReview,
+}: {
+  data: BudgetData;
+  today: string;
+  budgetHref?: string;
+  yourCategories: { id: string; name: string }[];
+  onMove?: (transactionId: string, categoryId: string) => void;
+  onReview?: (transactionIds: string[]) => void;
+}) {
   const summary = summarizeMonth(data, today);
   const categories = new Map(data.categories.map((c) => [c.id, c]));
 
@@ -50,27 +67,8 @@ export function DashboardView({ data, today, budgetHref }: { data: BudgetData; t
         <BudgetCard summary={summary} href={budgetHref} />
       </div>
 
-      <Section title="So far today">
-        {summary.today.length ? (
-          <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
-            {summary.today.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <span className="min-w-0 truncate">
-                  {t.description}
-                  {t.pending ? <span className="text-black/50 dark:text-white/50"> · Pending</span> : null}
-                </span>
-                <span className={`shrink-0 tabular-nums ${t.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
-                  {t.amount > 0 ? "+" : ""}
-                  {money.format(t.amount)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="rounded-2xl border border-dashed border-black/15 px-4 py-3 text-sm text-black/60 dark:border-white/20 dark:text-white/60">
-            Nothing yet today.
-          </p>
-        )}
+      <Section title={summary.toReview.length ? `Pending to review (${summary.toReview.length})` : "Pending to review"}>
+        <ReviewList rows={toRows(data, summary.toReview, "both")} categories={yourCategories} onMove={onMove} onReview={onReview} />
       </Section>
 
       <div className="mt-8 grid grid-cols-2 gap-3">

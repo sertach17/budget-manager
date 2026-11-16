@@ -19,7 +19,7 @@ async function Transactions() {
     supabase.from("accounts").select("id, name, institution, type, mask, current_balance").eq("is_hidden", false),
     supabase
       .from("transactions")
-      .select("id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category")
+      .select("id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category, reviewed_at")
       .lte("posted_on", today)
       .order("posted_on", { ascending: false })
       .order("created_at", { ascending: false })
