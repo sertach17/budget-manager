@@ -1,6 +1,8 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { AgentsView, type AgentChange, type ConnectedAgent } from "../agents/agents-view";
 import { AccountView } from "../accounts/account-view";
 import { AccountsFooter, AccountsList } from "../accounts/accounts-list";
 import { IncomeView } from "../income/income-view";
@@ -286,6 +288,51 @@ export function DemoUpload() {
           ok: false,
           message: "Reading real screenshots is off in the demo. Try the made-up sample screenshot.",
         })}
+      />
+    </>
+  );
+}
+
+// Made-up agents and changes for the demo's Connected agents page.
+function demoAgents(today: string): { agents: ConnectedAgent[]; changes: AgentChange[] } {
+  const at = (daysAgo: number, time: string) => {
+    const d = new Date(`${today}T${time}:00-05:00`);
+    d.setDate(d.getDate() - daysAgo);
+    return d.toISOString();
+  };
+  return {
+    agents: [
+      { clientId: "demo-claude", name: "Claude", website: "claude.ai", connectedAt: at(6, "09:12") },
+      { clientId: "demo-helper", name: "Budget Helper", website: null, connectedAt: at(2, "18:40") },
+    ],
+    changes: [
+      { id: "c1", clientId: "demo-claude", tool: "mark_reviewed", summary: "Marked 4 transactions reviewed.", at: at(0, "08:05") },
+      { id: "c2", clientId: "demo-claude", tool: "set_transaction_category", summary: "Moved Corner Market ($23.18) to Groceries.", at: at(0, "08:04") },
+      { id: "c3", clientId: "demo-helper", tool: "set_budget", summary: "Set Dining out to $250.00 every month.", at: at(1, "21:30") },
+      { id: "c4", clientId: "demo-claude", tool: "set_transaction_goal", summary: "Tagged Transfer to Savings ($200.00) to Beach trip.", at: at(3, "12:15") },
+    ],
+  };
+}
+
+export function DemoAgents() {
+  const { today } = useDemo();
+  const [{ agents, changes }, setState] = useState(() => demoAgents(today));
+  return (
+    <>
+      <AppHeader demo />
+      <h1 className="mt-6 text-xl font-semibold">Connected agents</h1>
+      <p className="mt-2 text-sm text-black/60 dark:text-white/60">
+        AI agents you allowed to read and change your budget, as you, with the limits below.
+      </p>
+      <p className="mt-2 text-xs text-black/50 dark:text-white/50">These agents are made up; nothing connects to the demo.</p>
+      <AgentsView
+        agents={agents}
+        changes={changes}
+        connectUrl="https://budget.torrezhq.com/api/mcp"
+        onDisconnect={async (clientId) => {
+          setState((s) => ({ ...s, agents: s.agents.filter((a) => a.clientId !== clientId) }));
+          return { ok: true, message: "Disconnected." };
+        }}
       />
     </>
   );

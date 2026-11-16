@@ -5,9 +5,14 @@ import { supabaseEnv } from "./env";
 // Pages anyone can open without signing in.
 const PUBLIC_PATHS = ["/login", "/auth/confirm"];
 // Open to everyone, signed in or not, with no session check: the demo shows
-// only made-up data, and the Venmo inbox endpoint checks each email's
-// signature itself.
-const NO_SESSION_PATHS = ["/demo", "/api/venmo/inbound"];
+// only made-up data, the Venmo inbox endpoint checks each email's signature
+// itself, and the agent connection checks each agent's own token.
+const NO_SESSION_PATHS = ["/demo", "/api/venmo/inbound", "/api/mcp", "/.well-known"];
+
+// When an AI agent sends you to approve it but you aren't signed in yet, the
+// approval page is kept here so you land back on it after two-factor.
+const RETURN_COOKIE = "after_sign_in";
+const CONSENT_PAGE = /^\/oauth\/consent\?authorization_id=[A-Za-z0-9_-]{1,100}$/;
 // Pages a signed-in user can open before finishing two-factor setup.
 const SETUP_PATHS = ["/mfa", "/account/password"];
 
@@ -15,13 +20,22 @@ function matches(pathname: string, paths: string[]) {
   return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-function redirectTo(request: NextRequest, pathname: string, from: NextResponse) {
+function redirectTo(request: NextRequest, path: string, from: NextResponse) {
   const url = request.nextUrl.clone();
+  const [pathname, query] = path.split("?");
   url.pathname = pathname;
-  url.search = "";
+  url.search = query ? `?${query}` : "";
   const response = NextResponse.redirect(url);
   // Keep any refreshed session cookies on the redirect.
   from.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
+  return response;
+}
+
+// Keeps the agent approval page for after sign-in, for 15 minutes.
+function remember(response: NextResponse, consentPage: string | null) {
+  if (consentPage) {
+    response.cookies.set(RETURN_COOKIE, consentPage, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 900 });
+  }
   return response;
 }
 
@@ -37,6 +51,9 @@ export async function updateSession(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   const { url, key } = supabaseEnv();
+
+  const { pathname, search } = request.nextUrl;
+  const consentPage = pathname === "/oauth/consent" && CONSENT_PAGE.test(`${pathname}${search}`) ? `${pathname}${search}` : null;
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -57,10 +74,10 @@ export async function updateSession(request: NextRequest) {
   // creating the client and this call.
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims);
-  const { pathname } = request.nextUrl;
 
   if (!signedIn) {
-    return matches(pathname, PUBLIC_PATHS) ? response : redirectTo(request, "/login", response);
+    if (matches(pathname, PUBLIC_PATHS)) return response;
+    return remember(redirectTo(request, "/login", response), consentPage);
   }
 
   if (matches(pathname, ["/auth/confirm"])) return response;
@@ -70,11 +87,18 @@ export async function updateSession(request: NextRequest) {
   const hasTwoFactor = aal?.nextLevel === "aal2";
 
   if (fullySignedIn) {
+    // Back to the agent approval page you started from, if any.
+    const saved = request.cookies.get(RETURN_COOKIE)?.value;
+    if (saved && (pathname === "/" || pathname === "/login")) {
+      const back = CONSENT_PAGE.test(saved) ? redirectTo(request, saved, response) : redirectTo(request, "/", response);
+      back.cookies.delete(RETURN_COOKIE);
+      return back;
+    }
     return pathname === "/login" ? redirectTo(request, "/", response) : response;
   }
   if (hasTwoFactor) {
     // Has an authenticator app set up but hasn't entered a code this session.
-    return pathname === "/mfa" ? response : redirectTo(request, "/mfa", response);
+    return pathname === "/mfa" ? response : remember(redirectTo(request, "/mfa", response), consentPage);
   }
   // Signed in but no two-factor yet: finish setup first.
   return matches(pathname, SETUP_PATHS) ? response : redirectTo(request, "/mfa", response);
