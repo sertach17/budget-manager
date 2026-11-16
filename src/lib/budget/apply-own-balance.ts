@@ -1,8 +1,9 @@
 import "server-only";
-import type { requireTwoFactorUser } from "@/lib/auth";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { balanceChange, easternDay } from "./own-balance";
 
-type Supabase = Awaited<ReturnType<typeof requireTwoFactorUser>>["supabase"];
+// Your own session, or an AI agent signed in as you.
+type Supabase = SupabaseClient;
 
 // After transactions are added to one of your own accounts, moves its
 // balance by the ones dated the day you last set it or later. Linked banks send their

@@ -7,6 +7,7 @@ import { signOut } from "./actions";
 const links = [
   { href: "/banks", label: "Banks" },
   { href: "/categories", label: "Categories" },
+  { href: "/agents", label: "Connected agents" },
   { href: "/account/password", label: "Change password" },
 ];
 
@@ -15,6 +16,7 @@ const itemClass = "block w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 d
 const demoLinks = [
   { href: "/demo/banks", label: "Banks" },
   { href: "/demo/categories", label: "Categories" },
+  { href: "/demo/agents", label: "Connected agents" },
 ];
 
 // The three-line button in the corner of the home page. It opens your

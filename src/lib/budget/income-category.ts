@@ -1,7 +1,8 @@
 import "server-only";
-import type { requireTwoFactorUser } from "@/lib/auth";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-type Supabase = Awaited<ReturnType<typeof requireTwoFactorUser>>["supabase"];
+// Your own session, or an AI agent signed in as you.
+type Supabase = SupabaseClient;
 
 // Your income category, making one called Income when you have none. It
 // takes the bank's income too, unless another category already does.
