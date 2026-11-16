@@ -29,12 +29,21 @@ export async function verifyAgentToken(token: string | undefined): Promise<AuthI
   const userId = claims.sub;
   if (claims.role !== "authenticated" || typeof clientId !== "string" || !clientId) return undefined;
   if (typeof userId !== "string" || !UUID.test(userId)) return undefined;
-  // Agents get the same two-factor level you do; anything less is turned away.
-  if (claims.aal !== "aal2") return undefined;
   // Asks Supabase whether the sign-in is still alive, so an agent you
   // disconnected stops at once rather than when its token runs out.
   const { data: live, error: gone } = await supabase.auth.getUser(token);
   if (gone || live.user?.id !== userId) return undefined;
+  // Supabase signs agents in without the two-factor mark, so the agent's
+  // sign-in must have started right after you pressed Allow with two-factor.
+  const asAgent = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: approved, error: notApproved } = await asAgent.rpc("agent_approved");
+  if (notApproved || approved !== true) {
+    if (notApproved) console.error("Checking an agent's approval failed:", notApproved.message);
+    return undefined;
+  }
   return {
     token,
     clientId,
