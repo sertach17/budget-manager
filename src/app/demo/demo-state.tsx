@@ -1,10 +1,13 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { Account, AccountType, BudgetData, PickCategory, Transaction } from "@/lib/budget/types";
+import type { Account, AccountType, BudgetData, Goal, PickCategory, Transaction } from "@/lib/budget/types";
 import type { OwnAccountInput, OwnAccountResult } from "@/app/banks/own-account-actions";
 import type { CheckResult, SaveResult } from "@/app/upload/actions";
 import type { AddResult } from "@/app/accounts/actions";
+import type { GoalResult } from "@/app/goals/actions";
+import { GoalsProvider } from "@/app/goal-picker";
+import { readGoal, type GoalInput } from "@/lib/budget/goal-input";
 import { NEW_INCOME } from "@/app/transactions/new-income";
 import { readManualTransaction, type ManualInput } from "@/lib/budget/manual-transaction";
 import { balanceChange } from "@/lib/budget/own-balance";
@@ -35,6 +38,9 @@ type DemoState = {
     toReview: boolean;
   }) => Promise<SaveResult>;
   addManual: (accountId: string, input: ManualInput) => Promise<AddResult>;
+  createGoal: (input: GoalInput) => Promise<GoalResult>;
+  updateGoal: (id: string, input: GoalInput) => Promise<GoalResult>;
+  deleteGoal: (id: string) => Promise<GoalResult>;
 };
 
 // Which demo category a statement row's bank-style category lands in.
@@ -223,6 +229,48 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     [base, ownAccounts, today, moveBalance],
   );
 
+  // Goals, and goal tags you changed (an empty string takes a tag off).
+  const [goals, setGoals] = useState<Goal[]>(() => base.goals ?? []);
+  const [goalTags, setGoalTags] = useState<Record<string, string>>({});
+  const goalFromInput = useCallback(
+    (id: string, input: GoalInput): Goal | string => {
+      const fields = readGoal(input);
+      if (typeof fields === "string") return fields;
+      if (fields.accountId) {
+        const account = [...base.accounts, ...ownAccounts].find((a) => a.id === fields.accountId);
+        if (!account) return "Pick one of your accounts.";
+        if (account.type === "credit" || account.type === "loan") return "Pick an account that holds money, not a card or loan.";
+      }
+      return { id, ...fields };
+    },
+    [base, ownAccounts],
+  );
+  const createGoal = useCallback(
+    async (input: GoalInput): Promise<GoalResult> => {
+      const goal = goalFromInput(`goal-${Date.now()}`, input);
+      if (typeof goal === "string") return { ok: false, message: goal };
+      setGoals((current) => [...current, goal]);
+      return { ok: true, message: `Added ${goal.name}. The demo forgets it when you reload.`, id: goal.id };
+    },
+    [goalFromInput],
+  );
+  const updateGoal = useCallback(
+    async (id: string, input: GoalInput): Promise<GoalResult> => {
+      const goal = goalFromInput(id, input);
+      if (typeof goal === "string") return { ok: false, message: goal };
+      setGoals((current) => current.map((g) => (g.id === id ? goal : g)));
+      return { ok: true, message: "Saved.", id };
+    },
+    [goalFromInput],
+  );
+  const deleteGoal = useCallback(async (id: string): Promise<GoalResult> => {
+    setGoals((current) => current.filter((g) => g.id !== id));
+    return { ok: true, message: "Deleted." };
+  }, []);
+  const setGoal = useCallback((transactionId: string, goalId: string) => {
+    setGoalTags((current) => ({ ...current, [transactionId]: goalId }));
+  }, []);
+
   const review = useCallback((transactionIds: string[]) => {
     setReviewed((current) => new Set([...current, ...transactionIds]));
   }, []);
@@ -247,12 +295,17 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
       ...base.transactions.filter((t) => !startedOwn.has(t.accountId) || own.has(t.accountId)),
       ...uploaded.filter((t) => own.has(t.accountId) || !startedOwn.has(t.accountId)),
     ];
+    const goalIds = new Set(goals.map((g) => g.id));
     const data = {
       ...base,
       accounts: [...linked, ...ownAccounts],
+      goals,
       transactions: kept.map((t) => {
         const moved = moves[t.id] ? { ...t, categoryId: moves[t.id], chosenCategoryId: moves[t.id] } : t;
-        return reviewed.has(t.id) ? { ...moved, reviewed: true } : moved;
+        const tag = t.id in goalTags ? goalTags[t.id] || null : (t.goalId ?? null);
+        // A deleted goal takes its tags with it.
+        const tagged = { ...moved, goalId: tag && goalIds.has(tag) ? tag : null };
+        return reviewed.has(t.id) ? { ...tagged, reviewed: true } : tagged;
       }),
     };
     const yourCategories = [...base.categories]
@@ -271,10 +324,19 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
       checkUpload,
       saveUpload,
       addManual,
+      createGoal,
+      updateGoal,
+      deleteGoal,
     };
-  }, [base, moves, reviewed, ownAccounts, uploaded, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload, addManual]);
+  }, [base, moves, reviewed, ownAccounts, uploaded, goals, goalTags, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload, addManual, createGoal, updateGoal, deleteGoal]);
 
-  return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
+  return (
+    <DemoContext.Provider value={value}>
+      <GoalsProvider goals={goals.map((g) => ({ id: g.id, name: g.name }))} onSetGoal={setGoal}>
+        {children}
+      </GoalsProvider>
+    </DemoContext.Provider>
+  );
 }
 
 export function useDemo() {

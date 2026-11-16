@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { budgetDataFromRows } from "@/lib/budget/from-db";
 import { easternToday } from "@/lib/dates";
+import { GoalsProvider } from "../../goal-picker";
 import { AppHeader } from "../../app-header";
 import { AccountView } from "../account-view";
 
@@ -20,20 +21,21 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
   const { supabase } = await requireTwoFactorUser();
   const today = easternToday();
 
-  const [accounts, transactions, categories] = await Promise.all([
+  const [accounts, transactions, categories, goals] = await Promise.all([
     supabase.from("accounts").select("id, name, institution, type, mask, current_balance, source").eq("id", id),
     supabase
       .from("transactions")
-      .select("id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category, reviewed_at")
+      .select("id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category, reviewed_at, goal_id")
       .eq("account_id", id)
       .lte("posted_on", today)
       .order("posted_on", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(SHOWN),
     supabase.from("categories").select("id, name, group_name, kind, color, is_excluded, plaid_categories").order("name"),
+    supabase.from("goals").select("id, name, target_amount, target_date, account_id, set_aside").order("created_at"),
   ]);
 
-  const failed = [accounts, transactions, categories].find((r) => r.error);
+  const failed = [accounts, transactions, categories, goals].find((r) => r.error);
   if (failed?.error) {
     console.error("Account query failed:", failed.error.message);
     return <p className="mt-8 text-sm text-red-600 dark:text-red-400">This account couldn&apos;t load. Try again in a minute.</p>;
@@ -45,11 +47,12 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
     transactions: transactions.data ?? [],
     categories: categories.data ?? [],
     budgets: [],
+    goals: goals.data ?? [],
   });
   const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim(), kind: c.kind }));
 
   return (
-    <>
+    <GoalsProvider goals={(goals.data ?? []).map((g) => ({ id: g.id, name: g.name }))}>
       <AccountView
         data={data}
         accountId={id}
@@ -61,7 +64,7 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
       {(transactions.data?.length ?? 0) >= SHOWN ? (
         <p className="mt-6 text-xs text-black/50 dark:text-white/50">Showing this account&apos;s latest {SHOWN} transactions.</p>
       ) : null}
-    </>
+    </GoalsProvider>
   );
 }
 

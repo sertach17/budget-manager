@@ -12,6 +12,7 @@ function formatDay(date: string) {
 export function toRows(data: BudgetData, transactions: Transaction[], show: "date" | "category" | "both"): RowTransaction[] {
   const categories = new Map(data.categories.map((c) => [c.id, c]));
   const accounts = new Map(data.accounts.map((a) => [a.id, a.mask ? `${a.name} ···${a.mask}` : a.name]));
+  const goals = new Map((data.goals ?? []).map((g) => [g.id, g.name]));
   return transactions.map((t) => {
     const category = t.categoryId ? categories.get(t.categoryId) : undefined;
     const categoryName = category?.name.trim() ?? "Uncategorized";
@@ -22,10 +23,13 @@ export function toRows(data: BudgetData, transactions: Transaction[], show: "dat
       description: t.description,
       amount: t.amount,
       pending: t.pending,
-      detail: [first, accounts.get(t.accountId)].filter(Boolean).join(" · "),
+      detail: [first, accounts.get(t.accountId), t.goalId && goals.has(t.goalId) ? `Goal: ${goals.get(t.goalId)}` : null]
+        .filter(Boolean)
+        .join(" · "),
       color: category?.color ?? "#6b7280",
       categoryId: t.chosenCategoryId ?? null,
       reviewed: t.reviewed !== false,
+      goalId: t.goalId ?? null,
     };
   });
 }

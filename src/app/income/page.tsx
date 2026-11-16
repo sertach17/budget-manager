@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { loadMonth } from "@/lib/budget/load";
 import { AppHeader } from "../app-header";
+import { GoalsProvider } from "../goal-picker";
 import { IncomeView } from "./income-view";
 
 export const metadata: Metadata = { title: "Income · Budget Manager" };
@@ -11,7 +12,11 @@ async function Income() {
   if (!month.ok) {
     return <p className="mt-8 text-sm text-red-600 dark:text-red-400">Your income couldn&apos;t load. Try again in a minute.</p>;
   }
-  return <IncomeView data={month.data} today={month.today} yourCategories={month.yourCategories} />;
+  return (
+    <GoalsProvider goals={month.yourGoals}>
+      <IncomeView data={month.data} today={month.today} yourCategories={month.yourCategories} />
+    </GoalsProvider>
+  );
 }
 
 export default function IncomePage() {

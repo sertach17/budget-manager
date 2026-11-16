@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { loadMonth } from "@/lib/budget/load";
 import { AppHeader } from "../../app-header";
+import { GoalsProvider } from "../../goal-picker";
 import { CategoryBudgetView } from "../category-view";
 
 export const metadata: Metadata = { title: "Budget · Budget Manager" };
@@ -14,7 +15,11 @@ async function CategoryBudget({ params }: { params: Promise<{ id: string }> }) {
     return <p className="mt-8 text-sm text-red-600 dark:text-red-400">This budget couldn&apos;t load. Try again in a minute.</p>;
   }
   if (!month.data.categories.some((c) => c.id === id)) notFound();
-  return <CategoryBudgetView data={month.data} today={month.today} categoryId={id} yourCategories={month.yourCategories} />;
+  return (
+    <GoalsProvider goals={month.yourGoals}>
+      <CategoryBudgetView data={month.data} today={month.today} categoryId={id} yourCategories={month.yourCategories} />
+    </GoalsProvider>
+  );
 }
 
 export default function CategoryBudgetPage({ params }: { params: Promise<{ id: string }> }) {

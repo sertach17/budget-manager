@@ -1,4 +1,4 @@
-import type { Account, AccountType, Budget, BudgetData, Category, CategoryKind, Transaction } from "./types";
+import type { Account, AccountType, Budget, BudgetData, Category, CategoryKind, Goal, Transaction } from "./types";
 
 // Turns database rows into the shapes DashboardView uses.
 //
@@ -28,6 +28,16 @@ export type TransactionRow = {
   pending: boolean;
   plaid_category: string | null;
   reviewed_at?: string | null; // null = not reviewed yet
+  goal_id?: string | null;
+};
+
+export type GoalRow = {
+  id: string;
+  name: string;
+  target_amount: number | string;
+  target_date: string | null;
+  account_id: string | null;
+  set_aside: number | string | null;
 };
 
 export type CategoryRow = {
@@ -124,6 +134,7 @@ export function budgetDataFromRows(rows: {
   transactions: TransactionRow[];
   categories: CategoryRow[];
   budgets: BudgetRow[];
+  goals?: GoalRow[];
 }): BudgetData {
   const accounts: Account[] = rows.accounts.map((a) => ({
     id: a.id,
@@ -197,10 +208,20 @@ export function budgetDataFromRows(rows: {
       amount: num(t.amount),
       pending: t.pending,
       reviewed: t.reviewed_at !== null,
+      goalId: t.goal_id ?? null,
     });
   }
 
   const budgets: Budget[] = rows.budgets.map((b) => ({ categoryId: b.category_id, amount: num(b.amount) }));
 
-  return { accounts, categories: [...categories.values()], transactions, budgets };
+  const goals: Goal[] = (rows.goals ?? []).map((g) => ({
+    id: g.id,
+    name: g.name,
+    target: num(g.target_amount),
+    targetDate: g.target_date,
+    accountId: g.account_id,
+    setAside: g.set_aside === null ? null : num(g.set_aside),
+  }));
+
+  return { accounts, categories: [...categories.values()], transactions, budgets, goals };
 }
