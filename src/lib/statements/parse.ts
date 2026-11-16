@@ -14,7 +14,7 @@ export type StatementRow = {
   category: string | null;
 };
 
-export type StatementFormat = "apple-card" | "csv" | "ofx";
+export type StatementFormat = "apple-card" | "csv" | "ofx" | "screenshot";
 
 export type ParsedStatement = {
   format: StatementFormat;
@@ -358,12 +358,17 @@ export function parseStatement(fileName: string, text: string, options: ParseOpt
 }
 
 // The same transaction always gets the same fingerprint, so uploading two
-// statements that overlap doesn't add anything twice. Two identical rows in
-// one file (two $4.50 coffees on the same day) are told apart by a count.
-export function statementFingerprints(accountId: string, rows: Pick<StatementRow, "postedOn" | "amount" | "description">[]) {
+// statements that overlap doesn't add anything twice. It uses the merchant
+// name when there is one, so an Apple Card export and a screenshot of the
+// same purchase match. Two identical rows in one file (two $4.50 coffees on
+// the same day) are told apart by a count.
+export function statementFingerprints(
+  accountId: string,
+  rows: (Pick<StatementRow, "postedOn" | "amount" | "description"> & { merchant?: string | null })[],
+) {
   const seen = new Map<string, number>();
   return rows.map((r) => {
-    const cleaned = r.description.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const cleaned = (r.merchant || r.description).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const key = `upload:${accountId}:${r.postedOn}:${r.amount.toFixed(2)}:${cleaned}`;
     const n = (seen.get(key) ?? 0) + 1;
     seen.set(key, n);

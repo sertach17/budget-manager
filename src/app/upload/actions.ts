@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { PLAID_CODE } from "@/lib/budget/plaid-names";
+import { easternToday } from "@/lib/dates";
 import { MAX_ROWS, readDate, statementFingerprints, type StatementFormat, type StatementRow } from "@/lib/statements/parse";
+import { readTransactionScreenshot, type ScreenshotResult } from "@/lib/statements/screenshot";
 
 // Saving a statement you uploaded to one of your own accounts. The file is
 // read in your browser; only its rows come here, and they're checked again.
@@ -34,8 +36,27 @@ function cleanRows(rows: unknown): StatementRow[] | string {
 async function ownAccount(id: string) {
   const { supabase, userId } = await requireTwoFactorUser();
   if (!UUID.test(String(id))) return { supabase, userId, account: null };
-  const { data } = await supabase.from("accounts").select("id, name").eq("id", id).in("source", ["manual", "upload"]).maybeSingle();
+  const { data } = await supabase.from("accounts").select("id, name, type").eq("id", id).in("source", ["manual", "upload"]).maybeSingle();
   return { supabase, userId, account: data };
+}
+
+// A screenshot, shrunk in the browser first, sent as a data URL. It's read
+// by Anthropic's AI and not kept anywhere.
+const IMAGE = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/;
+const MAX_IMAGE_CHARS = 3_000_000; // about 2 MB of picture
+
+export async function readScreenshot(accountId: string, dataUrl: string): Promise<ScreenshotResult> {
+  const { account } = await ownAccount(accountId);
+  if (!account) return { ok: false, message: "Pick one of your own accounts." };
+  if (typeof dataUrl !== "string" || dataUrl.length > MAX_IMAGE_CHARS) return { ok: false, message: "That picture is too big. Try a smaller screenshot." };
+  const match = IMAGE.exec(dataUrl);
+  if (!match) return { ok: false, message: "That file isn't a picture this can read. Use a PNG or JPEG screenshot." };
+  return readTransactionScreenshot({
+    base64: match[2],
+    mediaType: match[1] as "image/png" | "image/jpeg" | "image/webp" | "image/gif",
+    accountType: account.type,
+    today: easternToday(),
+  });
 }
 
 // Which rows you already have, so the preview can leave them out.
@@ -77,7 +98,7 @@ export async function saveStatement(input: {
   const clean = cleanRows(input.rows);
   if (typeof clean === "string") return { ok: false, message: clean };
   const fileName = String(input.fileName ?? "statement").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 200) || "statement";
-  const kind = input.format === "ofx" ? "ofx" : "csv";
+  const kind = input.format === "ofx" ? "ofx" : input.format === "screenshot" ? "screenshot" : "csv";
 
   const { data: imported, error: importError } = await supabase
     .from("imports")
