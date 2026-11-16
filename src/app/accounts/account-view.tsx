@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { BudgetData, Transaction, PickCategory } from "@/lib/budget/types";
 import { TransactionsView } from "../transactions/transactions-view";
+import { AddTransaction } from "./add-transaction";
 
-// One account and its transactions, grouped by day. Shared by the signed-in
-// page and the demo; the demo passes `onMove` and `onReview`.
+// One account and its transactions, grouped by day, with a button to add
+// one. Shared by the signed-in page and the demo; the demo passes `onMove`,
+// `onReview`, `onAdd` and `upload` to keep changes in the page.
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -13,21 +15,29 @@ export function AccountView({
   transactions,
   yourCategories,
   base = "",
+  own,
+  today,
   onMove,
   onReview,
+  onAdd,
+  upload,
 }: {
   data: BudgetData;
   accountId: string;
   transactions: Transaction[]; // this account's, newest first
   yourCategories: PickCategory[];
   base?: string;
+  own: boolean; // one of your own accounts, not a linked bank
+  today: string;
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;
+  onAdd?: React.ComponentProps<typeof AddTransaction>["onAdd"];
+  upload?: React.ComponentProps<typeof AddTransaction>["upload"];
 }) {
   const account = data.accounts.find((a) => a.id === accountId);
   const back = (
-    <Link href={base || "/"} className="mt-6 inline-block text-sm text-emerald-600 dark:text-emerald-400">
-      ← Dashboard
+    <Link href={`${base}/accounts`} className="mt-6 inline-block text-sm text-emerald-600 dark:text-emerald-400">
+      ← Accounts
     </Link>
   );
   if (!account) {
@@ -58,7 +68,16 @@ export function AccountView({
           {owed ? " owed" : ""}
         </p>
       </div>
-      <p className="mt-1 text-xs text-black/50 dark:text-white/50">Tap a transaction to move it or mark it reviewed.</p>
+      <AddTransaction
+        account={account}
+        own={own}
+        categories={yourCategories}
+        today={today}
+        base={base}
+        onAdd={onAdd}
+        upload={upload}
+      />
+      <p className="mt-4 text-xs text-black/50 dark:text-white/50">Tap a transaction to move it or mark it reviewed.</p>
 
       {transactions.length ? (
         <TransactionsView

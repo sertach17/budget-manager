@@ -10,7 +10,6 @@ import { TransactionRow } from "./transaction-row";
 // signed-in home page share it. `base` is "" on the real site and "/demo"
 // in the demo, so every link stays on the same site.
 
-const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const wholeMoney = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function formatMonth(month: string) {
@@ -90,31 +89,6 @@ export function DashboardView({
         </ul>
       </Section>
 
-      <Section title="Accounts" href={`${base}/banks`}>
-        <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
-          {data.accounts.map((account) => (
-            <li key={account.id}>
-              <Link
-                href={`${base}/accounts/${encodeURIComponent(account.id)}`}
-                className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-              >
-                <div>
-                  <p className="font-medium">{account.name}</p>
-                  <p className="text-xs text-black/50 dark:text-white/50">
-                    {account.institution}
-                    {account.mask ? ` ···${account.mask}` : ""}
-                  </p>
-                </div>
-                <span className="tabular-nums">
-                  {account.type === "credit" || account.type === "loan"
-                    ? `${money.format(account.currentBalance)} owed`
-                    : money.format(account.currentBalance)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </Section>
     </div>
   );
 }

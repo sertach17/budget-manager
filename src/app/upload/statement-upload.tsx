@@ -3,28 +3,37 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { plaidCategoryLabel } from "@/lib/budget/plaid-names";
-import { parseStatement, type ParsedStatement, type StatementRow } from "@/lib/statements/parse";
+import { mergeStatements, parseStatement, type ParsedStatement, type StatementRow } from "@/lib/statements/parse";
 import type { ScreenshotResult } from "@/lib/statements/screenshot";
 import { checkStatement, readScreenshot, saveStatement, type CheckResult, type SaveResult } from "./actions";
 
-// Upload a statement file or a screenshot to one of your own accounts. A
-// file is read here in the browser; a screenshot is shrunk here, then read by
-// Anthropic's AI. Either way you see what's new before anything is saved.
+// Upload statement files or screenshots to one of your own accounts, one or
+// several at a time. A file is read here in the browser; a screenshot is
+// shrunk here, then read by Anthropic's AI. Either way you see what's new
+// before anything is saved.
 
 export type UploadAccount = { id: string; name: string; type: string; mask: string | null };
 
-type Handlers = {
+export type UploadHandlers = {
   onCheck?: (accountId: string, rows: StatementRow[]) => Promise<CheckResult>;
   onSave?: typeof saveStatement;
   onReadScreenshot?: (accountId: string, dataUrl: string) => Promise<ScreenshotResult>;
 };
 
-type Preview = {
+// One file or screenshot you picked. A file keeps its text so it can be read
+// again for another account or the other sign.
+type Source = {
   fileName: string;
-  text: string; // the file's text; empty for a screenshot
+  text: string; // empty for a screenshot
   parsed: ParsedStatement;
+  pendingLeftOut: number;
+};
+
+type Preview = {
+  sources: Source[];
+  rows: StatementRow[]; // every file's rows, each transaction once
+  overlap: number; // rows that showed up in more than one file
   already: boolean[];
-  note?: string;
 };
 
 const input = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900";
@@ -33,6 +42,7 @@ const plain = "rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opac
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const MAX_BYTES = 5 * 1024 * 1024;
 const SHOWN = 100;
+const MAX_FILES = 10;
 
 const FORMAT_LABEL: Record<string, string> = {
   "apple-card": "Apple Card export",
@@ -70,6 +80,7 @@ export function StatementUpload({
   onCheck,
   onSave,
   onReadScreenshot,
+  fixedAccount = false,
 }: {
   accounts: UploadAccount[];
   initialAccountId?: string;
@@ -78,7 +89,9 @@ export function StatementUpload({
   sample?: { fileName: string; text: string };
   // The demo's made-up screenshot, already "read".
   sampleScreenshot?: StatementRow[];
-} & Handlers) {
+  // Inside an account's page: the account is already chosen.
+  fixedAccount?: boolean;
+} & UploadHandlers) {
   const [accountId, setAccountId] = useState(
     accounts.some((a) => a.id === initialAccountId) ? initialAccountId! : (accounts[0]?.id ?? ""),
   );
@@ -86,6 +99,7 @@ export function StatementUpload({
   const [error, setError] = useState<string | null>(null);
   const [toReview, setToReview] = useState(true);
   const [saved, setSaved] = useState<SaveResult | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const account = accounts.find((a) => a.id === accountId);
 
@@ -101,83 +115,138 @@ export function StatementUpload({
     );
   }
 
-  // Mark the rows you already have, then show them.
-  const show = async (fileName: string, text: string, parsed: ParsedStatement, forAccount: string, note?: string) => {
-    const checked = await (onCheck ?? checkStatement)(forAccount, parsed.rows);
+  const typeOf = (forAccount: string) => accounts.find((a) => a.id === forAccount)?.type;
+
+  // Put the files together, mark the rows you already have, then show them.
+  const show = async (sources: Source[], forAccount: string) => {
+    const { rows, overlap } = mergeStatements(
+      forAccount,
+      sources.map((s) => s.parsed.rows),
+    );
+    const checked = rows.length ? await (onCheck ?? checkStatement)(forAccount, rows) : { ok: true as const, already: [] };
     if (!checked.ok) {
       setPreview(null);
       setError(checked.message);
       return;
     }
-    setPreview({ fileName, text, parsed, already: checked.already, note });
+    setPreview({ sources, rows, overlap, already: checked.already });
   };
 
-  const read = (fileName: string, text: string, forAccount: string, flip?: boolean) =>
+  // A statement file's text, read for this account. Throws a message if it
+  // can't be read.
+  const parseFile = (fileName: string, text: string, forAccount: string, flip?: boolean): Source => ({
+    fileName,
+    text,
+    parsed: parseStatement(fileName, text, { flip, accountType: typeOf(forAccount) }),
+    pendingLeftOut: 0,
+  });
+
+  // Files are read again for another account (the sign can depend on the
+  // kind of account); screenshots aren't read again, only checked.
+  const reread = (sources: Source[], forAccount: string) =>
     start(async () => {
       setError(null);
-      setSaved(null);
-      let parsed: ParsedStatement;
       try {
-        const type = accounts.find((a) => a.id === forAccount)?.type;
-        parsed = parseStatement(fileName, text, { flip, accountType: type });
+        const next = sources.map((s) =>
+          s.parsed.format === "screenshot" ? s : parseFile(s.fileName, s.text, forAccount, s.parsed.flipped ?? undefined),
+        );
+        await show(next, forAccount);
       } catch (e) {
         setPreview(null);
         setError(e instanceof Error ? e.message : "This file couldn't be read.");
-        return;
       }
-      await show(fileName, text, parsed, forAccount);
     });
 
-  const showScreenshot = (fileName: string, result: ScreenshotResult, forAccount: string) => {
-    if (!result.ok) {
+  const flip = (index: number, flipped: boolean) =>
+    start(async () => {
+      if (!preview) return;
+      setError(null);
+      try {
+        const s = preview.sources[index];
+        const next = preview.sources.map((x, i) => (i === index ? parseFile(s.fileName, s.text, accountId, flipped) : x));
+        await show(next, accountId);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "This file couldn't be read.");
+      }
+    });
+
+  // Read every file you picked, one after another, then show them together.
+  // A file that can't be read is named; the rest still show.
+  const pickFiles = (picked: File[]) => {
+    if (!picked.length) return;
+    if (picked.length > MAX_FILES) {
       setPreview(null);
-      setError(result.message);
+      setError(`Pick up to ${MAX_FILES} files at a time.`);
       return;
     }
-    const note = result.pendingLeftOut
-      ? result.pendingLeftOut === 1
-        ? "1 pending one is left out until it posts."
-        : `${result.pendingLeftOut} pending ones are left out until they post.`
-      : undefined;
-    return show(fileName, "", { format: "screenshot", rows: result.rows, skipped: 0, flipped: null }, forAccount, note);
-  };
-
-  const readPicture = (file: File, forAccount: string) =>
+    const forAccount = accountId;
     start(async () => {
       setError(null);
       setSaved(null);
-      let dataUrl: string;
-      try {
-        dataUrl = await shrink(file);
-      } catch {
-        setPreview(null);
-        setError("This picture couldn't be opened. Use a PNG or JPEG screenshot.");
-        return;
-      }
-      const result = await (onReadScreenshot ?? readScreenshot)(forAccount, dataUrl);
-      await showScreenshot(file.name, result, forAccount);
-    });
-
-  const pickFile = async (file: File | undefined) => {
-    if (!file) return;
-    if (file.type.startsWith("image/")) {
-      if (file.size > 20 * 1024 * 1024) {
-        setPreview(null);
-        setError("That picture is bigger than 20 MB. Try a screenshot instead.");
-        return;
-      }
-      readPicture(file, accountId);
-      return;
-    }
-    if (file.size > MAX_BYTES) {
       setPreview(null);
-      setError("That file is bigger than 5 MB. Download a shorter date range.");
-      return;
-    }
-    read(file.name, await file.text(), accountId);
+      const sources: Source[] = [];
+      const problems: string[] = [];
+      for (let i = 0; i < picked.length; i++) {
+        const file = picked[i];
+        setProgress(picked.length > 1 ? `Reading ${i + 1} of ${picked.length}…` : "Reading…");
+        if (file.type.startsWith("image/")) {
+          if (file.size > 20 * 1024 * 1024) {
+            problems.push(`${file.name} is bigger than 20 MB.`);
+            continue;
+          }
+          let dataUrl: string;
+          try {
+            dataUrl = await shrink(file);
+          } catch {
+            problems.push(`${file.name} couldn't be opened. Use a PNG or JPEG screenshot.`);
+            continue;
+          }
+          const result = await (onReadScreenshot ?? readScreenshot)(forAccount, dataUrl);
+          if (!result.ok) {
+            problems.push(picked.length > 1 ? `${file.name}: ${result.message}` : result.message);
+            continue;
+          }
+          sources.push({
+            fileName: file.name,
+            text: "",
+            parsed: { format: "screenshot", rows: result.rows, skipped: 0, flipped: null },
+            pendingLeftOut: result.pendingLeftOut,
+          });
+          continue;
+        }
+        if (file.size > MAX_BYTES) {
+          problems.push(`${file.name} is bigger than 5 MB. Download a shorter date range.`);
+          continue;
+        }
+        try {
+          sources.push(parseFile(file.name, await file.text(), forAccount));
+        } catch (e) {
+          const why = e instanceof Error ? e.message : "It couldn't be read.";
+          problems.push(picked.length > 1 ? `${file.name}: ${why}` : why);
+        }
+      }
+      setProgress(null);
+      if (problems.length) setError(problems.join(" "));
+      if (sources.length) await show(sources, forAccount);
+    });
   };
 
-  const fresh = preview ? preview.parsed.rows.filter((_, i) => !preview.already[i]) : [];
+  const sampleFile = (sample: { fileName: string; text: string }) =>
+    start(async () => {
+      setError(null);
+      setSaved(null);
+      try {
+        await show([parseFile(sample.fileName, sample.text, accountId)], accountId);
+      } catch (e) {
+        setPreview(null);
+        setError(e instanceof Error ? e.message : "This file couldn't be read.");
+      }
+    });
+
+  const fresh = preview ? preview.rows.filter((_, i) => !preview.already[i]) : [];
+  const pendingLeftOut = preview ? preview.sources.reduce((n, s) => n + s.pendingLeftOut, 0) : 0;
+  const anyScreenshot = preview?.sources.some((s) => s.parsed.format === "screenshot") ?? false;
+  const skipped = preview ? preview.sources.reduce((n, s) => n + s.parsed.skipped, 0) : 0;
   const alreadyCount = preview ? preview.already.filter(Boolean).length : 0;
   const moneyOut = fresh.filter((r) => r.amount < 0).reduce((n, r) => n - r.amount, 0);
   const moneyIn = fresh.filter((r) => r.amount > 0).reduce((n, r) => n + r.amount, 0);
@@ -187,11 +256,12 @@ export function StatementUpload({
       if (!preview) return;
       // Send every row; the server skips the ones you already have, so the
       // count for same-day twins stays right.
+      const [first, ...rest] = preview.sources;
       const r = await (onSave ?? saveStatement)({
         accountId,
-        fileName: preview.fileName,
-        format: preview.parsed.format,
-        rows: preview.parsed.rows,
+        fileName: rest.length ? `${first.fileName} and ${rest.length} more` : first.fileName,
+        format: first.parsed.format,
+        rows: preview.rows,
         toReview,
       });
       setSaved(r);
@@ -201,40 +271,37 @@ export function StatementUpload({
   return (
     <div className="mt-6 grid gap-6">
       <div className="grid gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/15">
-        <label className="text-sm">
-          <span className="mb-1 block text-xs text-black/60 dark:text-white/60">Account</span>
-          <select
-            value={accountId}
-            onChange={(e) => {
-              const next = e.target.value;
-              setAccountId(next);
-              if (!preview) return;
-              // A screenshot isn't read again; its rows are just checked
-              // against the other account.
-              if (preview.parsed.format === "screenshot") {
-                const { fileName, parsed, note } = preview;
-                start(() => show(fileName, "", parsed, next, note));
-              } else read(preview.fileName, preview.text, next);
-            }}
-            className={input}
-          >
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-                {a.mask ? ` ···${a.mask}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        {fixedAccount ? null : (
+          <label className="text-sm">
+            <span className="mb-1 block text-xs text-black/60 dark:text-white/60">Account</span>
+            <select
+              value={accountId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setAccountId(next);
+                if (preview) reread(preview.sources, next);
+              }}
+              className={input}
+            >
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                  {a.mask ? ` ···${a.mask}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="text-sm">
           <span className="mb-1 block text-xs text-black/60 dark:text-white/60">
-            Statement file (CSV, OFX, QFX or QBO) or a screenshot of transactions
+            Statement files (CSV, OFX, QFX or QBO) or screenshots of transactions, up to {MAX_FILES} at a time
           </span>
           <input
             type="file"
+            multiple
             accept=".csv,.ofx,.qfx,.qbo,text/csv,image/png,image/jpeg,image/webp,image/gif"
             onChange={(e) => {
-              pickFile(e.target.files?.[0]);
+              pickFiles(Array.from(e.target.files ?? []));
               e.target.value = "";
             }}
             className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white dark:file:bg-emerald-500"
@@ -243,7 +310,7 @@ export function StatementUpload({
         {sample || sampleScreenshot ? (
           <div className="flex flex-wrap gap-2">
             {sample ? (
-              <button type="button" onClick={() => read(sample.fileName, sample.text, accountId)} disabled={pending} className={plain}>
+              <button type="button" onClick={() => sampleFile(sample)} disabled={pending} className={plain}>
                 Try a made-up sample file
               </button>
             ) : null}
@@ -254,7 +321,17 @@ export function StatementUpload({
                   start(async () => {
                     setError(null);
                     setSaved(null);
-                    await showScreenshot("Sample screenshot", { ok: true, rows: sampleScreenshot, pendingLeftOut: 1 }, accountId);
+                    await show(
+                      [
+                        {
+                          fileName: "Sample screenshot",
+                          text: "",
+                          parsed: { format: "screenshot", rows: sampleScreenshot, skipped: 0, flipped: null },
+                          pendingLeftOut: 1,
+                        },
+                      ],
+                      accountId,
+                    );
                   })
                 }
                 disabled={pending}
@@ -270,12 +347,12 @@ export function StatementUpload({
           file is read on this device. A screenshot is sent to Anthropic&apos;s AI to read the transactions in it, about a tenth of a
           cent each. Nothing is saved until you tap Save.
         </p>
-        {pending && !preview ? <p className="text-sm">Reading…</p> : null}
+        {pending && !preview ? <p className="text-sm">{progress ?? "Reading…"}</p> : null}
         {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
         {saved ? (
           <p className={`text-sm ${saved.ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}>
             {saved.message}{" "}
-            {saved.ok && account ? (
+            {saved.ok && account && !fixedAccount ? (
               <Link href={`${base}/accounts/${account.id}`} className="font-medium underline">
                 See {account.name}
               </Link>
@@ -291,11 +368,26 @@ export function StatementUpload({
             {alreadyCount ? `, ${alreadyCount} you already have` : ""}
           </p>
           <p className="text-xs text-black/50 dark:text-white/50">
-            {FORMAT_LABEL[preview.parsed.format]} · {preview.fileName}
-            {preview.parsed.skipped ? ` · ${preview.parsed.skipped} lines couldn't be read and are left out` : ""}
+            {preview.sources.length === 1
+              ? `${FORMAT_LABEL[preview.sources[0].parsed.format]} · ${preview.sources[0].fileName}`
+              : `From ${preview.sources.length} files: ${preview.sources.map((s) => s.fileName).join(", ")}`}
+            {skipped ? ` · ${skipped} lines couldn't be read and are left out` : ""}
           </p>
-          {preview.note ? <p className="mt-1 text-xs text-black/50 dark:text-white/50">{preview.note}</p> : null}
-          {preview.parsed.format === "screenshot" ? (
+          {preview.overlap ? (
+            <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+              {preview.overlap === 1
+                ? "1 transaction showed up in more than one file and is counted once."
+                : `${preview.overlap} transactions showed up in more than one file and are counted once.`}
+            </p>
+          ) : null}
+          {pendingLeftOut ? (
+            <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+              {pendingLeftOut === 1
+                ? "1 pending one is left out until it posts."
+                : `${pendingLeftOut} pending ones are left out until they post.`}
+            </p>
+          ) : null}
+          {anyScreenshot ? (
             <p className="mt-1 text-xs text-black/50 dark:text-white/50">Read by AI: check the dates and amounts before you save.</p>
           ) : null}
           {fresh.length ? (
@@ -304,22 +396,25 @@ export function StatementUpload({
             </p>
           ) : null}
 
-          {preview.parsed.flipped !== null ? (
-            <label className="mt-3 flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={preview.parsed.flipped}
-                onChange={(e) => read(preview.fileName, preview.text, accountId, e.target.checked)}
-                className="mt-1"
-              />
-              <span>
-                Purchases show as positive numbers in this file
-                <span className="block text-xs text-black/50 dark:text-white/50">
-                  Check the list: purchases should be red money out. Tick or untick this if they aren&apos;t.
+          {preview.sources.map((source, index) =>
+            source.parsed.flipped !== null ? (
+              <label key={`${source.fileName}-${index}`} className="mt-3 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={source.parsed.flipped}
+                  onChange={(e) => flip(index, e.target.checked)}
+                  disabled={pending}
+                  className="mt-1"
+                />
+                <span>
+                  Purchases show as positive numbers in {preview.sources.length > 1 ? source.fileName : "this file"}
+                  <span className="block text-xs text-black/50 dark:text-white/50">
+                    Check the list: purchases should be red money out. Tick or untick this if they aren&apos;t.
+                  </span>
                 </span>
-              </span>
-            </label>
-          ) : null}
+              </label>
+            ) : null,
+          )}
 
           {fresh.length ? (
             <>
@@ -359,7 +454,9 @@ export function StatementUpload({
               </div>
             </>
           ) : (
-            <p className="mt-3 text-sm">You already have everything in this file.</p>
+            <p className="mt-3 text-sm">
+              You already have everything in {preview.sources.length > 1 ? "these files" : "this file"}.
+            </p>
           )}
         </section>
       ) : null}

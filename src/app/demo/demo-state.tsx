@@ -4,6 +4,9 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { Account, AccountType, BudgetData, PickCategory, Transaction } from "@/lib/budget/types";
 import type { OwnAccountInput, OwnAccountResult } from "@/app/banks/own-account-actions";
 import type { CheckResult, SaveResult } from "@/app/upload/actions";
+import type { AddResult } from "@/app/accounts/actions";
+import { NEW_INCOME } from "@/app/transactions/new-income";
+import { readManualTransaction, type ManualInput } from "@/lib/budget/manual-transaction";
 import { plaidGroup } from "@/lib/budget/from-db";
 import { demoData, demoOwnAccounts } from "@/lib/demo/data";
 import { statementFingerprints, type StatementFormat, type StatementRow } from "@/lib/statements/parse";
@@ -30,6 +33,7 @@ type DemoState = {
     rows: StatementRow[];
     toReview: boolean;
   }) => Promise<SaveResult>;
+  addManual: (accountId: string, input: ManualInput) => Promise<AddResult>;
 };
 
 // Which demo category a statement row's bank-style category lands in.
@@ -157,6 +161,35 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     [ownAccounts, existing],
   );
 
+  // A transaction typed in, checked the way the signed-in site checks it.
+  const addManual = useCallback(
+    async (accountId: string, input: ManualInput): Promise<AddResult> => {
+      const account = [...base.accounts, ...ownAccounts].find((a) => a.id === accountId);
+      if (!account) return { ok: false, message: "That account couldn't be found." };
+      const row = readManualTransaction(input, today);
+      if (typeof row === "string") return { ok: false, message: row };
+      const categoryId = row.categoryId === NEW_INCOME ? "cat-paycheck" : row.categoryId || null;
+      const [print] = statementFingerprints(account.id, [row]);
+      setUploaded((current) => [
+        ...current,
+        {
+          id: `typed-${Date.now()}`,
+          accountId: account.id,
+          categoryId,
+          chosenCategoryId: categoryId,
+          postedOn: row.postedOn,
+          description: row.description,
+          merchant: null,
+          amount: row.amount,
+          pending: false,
+        },
+      ]);
+      setUploadedPrints((current) => new Set([...current, print]));
+      return { ok: true, message: `Added ${row.description} to ${account.name}. The demo forgets it when you reload.` };
+    },
+    [base, ownAccounts, today],
+  );
+
   const review = useCallback((transactionIds: string[]) => {
     setReviewed((current) => new Set([...current, ...transactionIds]));
   }, []);
@@ -177,7 +210,10 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     const startedOwn = new Set(demoOwnAccounts.map((a) => a.id));
     const linked = base.accounts.filter((a) => !startedOwn.has(a.id));
     // A deleted own account takes its transactions with it.
-    const kept = [...base.transactions.filter((t) => !startedOwn.has(t.accountId) || own.has(t.accountId)), ...uploaded.filter((t) => own.has(t.accountId))];
+    const kept = [
+      ...base.transactions.filter((t) => !startedOwn.has(t.accountId) || own.has(t.accountId)),
+      ...uploaded.filter((t) => own.has(t.accountId) || !startedOwn.has(t.accountId)),
+    ];
     const data = {
       ...base,
       accounts: [...linked, ...ownAccounts],
@@ -201,8 +237,9 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
       deleteAccount,
       checkUpload,
       saveUpload,
+      addManual,
     };
-  }, [base, moves, reviewed, ownAccounts, uploaded, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload]);
+  }, [base, moves, reviewed, ownAccounts, uploaded, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload, addManual]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }
