@@ -1,11 +1,14 @@
+import Link from "next/link";
 import { summarizeMonth } from "@/lib/budget/summary";
 import type { BudgetData } from "@/lib/budget/types";
 import { toRows } from "./budget/rows";
 import { BudgetCard } from "./budget-card";
 import { ReviewList } from "./review-list";
+import { TransactionRow } from "./transaction-row";
 
 // The main dashboard. It only takes data, so the demo page and the
-// signed-in home page share it.
+// signed-in home page share it. `base` is "" on the real site and "/demo"
+// in the demo, so every link stays on the same site.
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const wholeMoney = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -14,48 +17,42 @@ function formatMonth(month: string) {
   return new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-function formatDay(date: string) {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-}
+const sectionTitle = "text-sm font-semibold uppercase tracking-wide text-black/60 dark:text-white/60";
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
-      <p className="text-xs font-medium uppercase tracking-wide text-black/50 dark:text-white/50">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-      {note ? <p className="mt-0.5 text-xs text-black/50 dark:text-white/50">{note}</p> : null}
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// A section whose title can open a page of its own.
+function Section({ title, href, children }: { title: string; href?: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-black/60 dark:text-white/60">{title}</h2>
+      <h2 className={sectionTitle}>
+        {href ? (
+          <Link href={href} className="inline-flex items-center gap-1 hover:text-emerald-600 dark:hover:text-emerald-400">
+            {title} <span aria-hidden="true">›</span>
+          </Link>
+        ) : (
+          title
+        )}
+      </h2>
       <div className="mt-3">{children}</div>
     </section>
   );
 }
 
-// `budgetHref` makes the budget card open that page. `onMove` and `onReview`
-// keep changes in the page instead of the database (the demo uses them).
 export function DashboardView({
   data,
   today,
-  budgetHref,
+  base = "",
   yourCategories,
   onMove,
   onReview,
 }: {
   data: BudgetData;
   today: string;
-  budgetHref?: string;
+  base?: string;
   yourCategories: { id: string; name: string }[];
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;
 }) {
   const summary = summarizeMonth(data, today);
-  const categories = new Map(data.categories.map((c) => [c.id, c]));
 
   return (
     <div>
@@ -64,85 +61,56 @@ export function DashboardView({
       </p>
 
       <div className="mt-3">
-        <BudgetCard summary={summary} href={budgetHref} />
+        <BudgetCard summary={summary} href={`${base}/budget`} />
       </div>
 
       <Section title={summary.toReview.length ? `Pending to review (${summary.toReview.length})` : "Pending to review"}>
         <ReviewList rows={toRows(data, summary.toReview, "both")} categories={yourCategories} onMove={onMove} onReview={onReview} />
       </Section>
 
-      <div className="mt-8 grid grid-cols-2 gap-3">
-        <Stat label="Income" value={wholeMoney.format(summary.income)} note="this month" />
-        <Stat label="Net worth" value={wholeMoney.format(summary.netWorth)} note="all accounts" />
-      </div>
+      <Link
+        href={`${base}/income`}
+        className="mt-8 flex items-center justify-between gap-3 rounded-2xl border border-black/10 p-4 hover:bg-black/[0.02] dark:border-white/15 dark:hover:bg-white/[0.03]"
+      >
+        <span>
+          <span className="block text-xs font-medium uppercase tracking-wide text-black/50 dark:text-white/50">Income</span>
+          <span className="mt-1 block text-xl font-semibold tabular-nums">{wholeMoney.format(summary.income)}</span>
+          <span className="mt-0.5 block text-xs text-black/50 dark:text-white/50">this month</span>
+        </span>
+        <span aria-hidden="true" className="text-xl text-black/40 dark:text-white/40">
+          ›
+        </span>
+      </Link>
 
-      {/* With a Budget page to open, the full list lives there. */}
-      {budgetHref ? null : (
-      <Section title={summary.budgeted > 0 ? "Budgets" : "Spending by category"}>
-        <ul className="space-y-3">
-          {summary.byCategory.map(({ category, spent, budget }) => {
-            const share = budget ? Math.min(spent / budget, 1) : 1;
-            const over = budget !== null && spent > budget;
-            return (
-              <li key={category.id}>
-                <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="font-medium">{category.name}</span>
-                  <span className={`tabular-nums ${over ? "text-red-600 dark:text-red-400" : "text-black/60 dark:text-white/60"}`}>
-                    {wholeMoney.format(spent)}
-                    {budget !== null ? ` of ${wholeMoney.format(budget)}` : ""}
-                  </span>
-                </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.round(share * 100)}%`, backgroundColor: over ? "#dc2626" : category.color }}
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </Section>
-      )}
-
-      <Section title="Recent transactions">
+      <Section title="Recent transactions" href={`${base}/transactions`}>
         <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
-          {summary.recent.map((t) => {
-            const category = t.categoryId ? categories.get(t.categoryId) : undefined;
-            return (
-              <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{t.description}</p>
-                  <p className="text-xs text-black/50 dark:text-white/50">
-                    {formatDay(t.postedOn)}
-                    {category ? ` · ${category.name}` : ""}
-                    {t.pending ? " · Pending" : ""}
-                  </p>
-                </div>
-                <span className={`shrink-0 tabular-nums ${t.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
-                  {t.amount > 0 ? "+" : ""}
-                  {money.format(t.amount)}
-                </span>
-              </li>
-            );
-          })}
+          {toRows(data, summary.recent, "both").map((row) => (
+            <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} onReview={onReview} />
+          ))}
         </ul>
       </Section>
 
-      <Section title="Accounts">
+      <Section title="Accounts" href={`${base}/banks`}>
         <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
           {data.accounts.map((account) => (
-            <li key={account.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <div>
-                <p className="font-medium">{account.name}</p>
-                <p className="text-xs text-black/50 dark:text-white/50">
-                  {account.institution}
-                  {account.mask ? ` ···${account.mask}` : ""}
-                </p>
-              </div>
-              <span className="tabular-nums">
-                {account.type === "credit" || account.type === "loan" ? `${money.format(account.currentBalance)} owed` : money.format(account.currentBalance)}
-              </span>
+            <li key={account.id}>
+              <Link
+                href={`${base}/accounts/${encodeURIComponent(account.id)}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+              >
+                <div>
+                  <p className="font-medium">{account.name}</p>
+                  <p className="text-xs text-black/50 dark:text-white/50">
+                    {account.institution}
+                    {account.mask ? ` ···${account.mask}` : ""}
+                  </p>
+                </div>
+                <span className="tabular-nums">
+                  {account.type === "credit" || account.type === "loan"
+                    ? `${money.format(account.currentBalance)} owed`
+                    : money.format(account.currentBalance)}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
