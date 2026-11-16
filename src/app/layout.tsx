@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,15 @@ export const metadata: Metadata = {
   title: "Budget Manager",
   description: "A private budget tracker.",
   robots: { index: false, follow: false },
+  icons: { apple: "/apple-touch-icon.png" },
+  // Added to the iPhone home screen, it opens full screen and is named
+  // "Budget" under its icon.
+  appleWebApp: { capable: true, title: "Budget", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  // Lets the bottom tabs sit above the iPhone's home bar.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
