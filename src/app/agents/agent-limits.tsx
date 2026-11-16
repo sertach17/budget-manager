@@ -7,6 +7,7 @@ export const AGENT_CAN_CHANGE = [
   "Add a transaction (it waits under Pending to review)",
   "Add or change a goal",
   "Set a budget",
+  "Sync your banks, at most every 30 minutes",
 ];
 export const AGENT_CANNOT = ["Delete anything", "Touch bank links, Venmo or uploads", "Change settings, categories, your password or two-factor"];
 

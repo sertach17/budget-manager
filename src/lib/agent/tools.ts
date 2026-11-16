@@ -9,14 +9,19 @@ import { summarizeMonth } from "@/lib/budget/summary";
 import type { TransactionRow } from "@/lib/budget/from-db";
 import { easternToday } from "@/lib/dates";
 import { statementFingerprints } from "@/lib/statements/parse";
+import { isPlaidConfigured, plaidEnv } from "@/lib/plaid/client";
+import { needsSignIn } from "@/lib/plaid/status";
+import { syncBanks } from "@/lib/plaid/sync-all";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { agentSession, type AgentSession } from "./session";
 import { describeTransaction, loadBudgetData, monthRange, ReadError, readRows, TRANSACTION_COLUMNS } from "./data";
 
 // The tools a connected AI agent can call. Reads cover accounts,
 // transactions, budgets, income, goals and Pending to review. Writes can
 // change a transaction's category or goal, mark transactions reviewed, add a
-// transaction, add or change a goal, and set a budget. Nothing deletes, and
-// nothing touches bank links, settings or two-factor. The database enforces
+// transaction, add or change a goal, and set a budget. It can also start a
+// bank sync, at most every 30 minutes. Nothing deletes, and nothing touches
+// bank links, settings or two-factor. The database enforces
 // the same limits, so a tool can't do more than this even by mistake.
 //
 // Every write is logged to agent_activity for the Connected agents page.
@@ -65,6 +70,11 @@ async function logChange(s: AgentSession, toolName: string, summary: string) {
 }
 
 const thisMonth = () => easternToday().slice(0, 7);
+
+const AGENT_SYNC_EVERY_MS = 30 * 60 * 1000;
+
+const easternTime = (ms: number) =>
+  new Date(ms).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
 
 // The day to count a month up to: today for this month, its last day before.
 function countUpTo(m: string) {
@@ -615,6 +625,69 @@ export function registerAgentTools(server: McpServer) {
       const message = `Set ${category.name.trim()} to ${usd(amount)} ${args.month ? `for ${args.month}` : "every month"}.`;
       await logChange(s, "set_budget", message);
       return { ok: true, message };
+    }),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Syncing
+  // ---------------------------------------------------------------------------
+
+  server.registerTool(
+    "sync_banks",
+    {
+      title: "Sync your banks",
+      description:
+        "Pulls the latest transactions and balances from your connected banks (not Venmo or uploads), the same as Sync now. At most once every 30 minutes; banks also sync by themselves every morning around 6 AM.",
+      inputSchema: z.object({}),
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    tool(async (_args: Record<string, never>, s) => {
+      if (!isPlaidConfigured()) throw new ToolError("No banks are connected on this site.");
+      const admin = createAdminClient();
+      const [{ data: lastAgentSync, error: activityError }, { data: items, error: itemsError }] = await Promise.all([
+        s.supabase
+          .from("agent_activity")
+          .select("created_at")
+          .eq("tool", "sync_banks")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        admin.from("plaid_items").select("last_synced_at").eq("user_id", s.userId).eq("environment", plaidEnv()),
+      ]);
+      if (activityError || itemsError) throw new ReadError("Couldn't check when your banks last synced. Try again.");
+      if (!items?.length) throw new ToolError("No banks are connected yet.");
+
+      // Counts your own syncs and the morning one too, so banks aren't asked
+      // more than once every 30 minutes because of an agent.
+      const last = Math.max(
+        lastAgentSync ? new Date(lastAgentSync.created_at).getTime() : 0,
+        ...items.map((i) => (i.last_synced_at ? new Date(i.last_synced_at).getTime() : 0)),
+      );
+      const nextAllowed = last + AGENT_SYNC_EVERY_MS;
+      if (Date.now() < nextAllowed) {
+        const minutes = Math.max(1, Math.round((Date.now() - last) / 60_000));
+        return {
+          synced: false,
+          message: `Your banks synced ${minutes} minute${minutes === 1 ? "" : "s"} ago, so the data is fresh. An agent can start another sync after ${easternTime(nextAllowed)}.`,
+        };
+      }
+
+      await logChange(s, "sync_banks", "Started a bank sync.");
+      const results = await syncBanks(admin, s.userId);
+      return {
+        synced: true,
+        banks: results.map((r) =>
+          r.ok
+            ? { bank: r.bank, ok: true, newOrUpdated: r.added, removed: r.removed }
+            : {
+                bank: r.bank,
+                ok: false,
+                problem: needsSignIn(r.code ?? null)
+                  ? "Needs you to sign in again on the Banks page."
+                  : `Sync didn't work (${r.code}).`,
+              },
+        ),
+      };
     }),
   );
 }

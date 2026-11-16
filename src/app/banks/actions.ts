@@ -3,22 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { plaidClient, plaidEnv, plaidErrorCode } from "@/lib/plaid/client";
+import { needsSignIn } from "@/lib/plaid/status";
 import { syncPlaidItem } from "@/lib/plaid/sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Result = { ok: true; message?: string } | { ok: false; message: string };
 
+const ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Step 1 of connecting a bank: a short-lived token that opens Plaid Link.
-export async function createLinkToken(): Promise<{ ok: true; token: string } | { ok: false; message: string }> {
+// With a connection's id, Link opens to sign in to that bank again instead
+// (Plaid's update mode), keeping the same connection and history.
+export async function createLinkToken(itemId?: string): Promise<{ ok: true; token: string } | { ok: false; message: string }> {
   const { userId } = await requireTwoFactorUser();
+  let accessToken: string | undefined;
+  if (itemId !== undefined) {
+    if (!ITEM_ID.test(String(itemId))) return { ok: false, message: "That bank connection wasn't found." };
+    const { data: item } = await createAdminClient()
+      .from("plaid_items")
+      .select("access_token")
+      .eq("id", itemId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!item) return { ok: false, message: "That bank connection wasn't found." };
+    accessToken = item.access_token;
+  }
   try {
     const response = await plaidClient().link.createToken({
       user: { client_user_id: userId },
       client_name: "Budget Manager",
-      products: ["transactions"],
       country_codes: ["US"],
       language: "en",
-      transactions: { days_requested: 730 },
+      ...(accessToken
+        ? { access_token: accessToken }
+        : { products: ["transactions"], transactions: { days_requested: 730 } }),
     });
     return { ok: true, token: response.link_token };
   } catch (error) {
@@ -70,6 +88,7 @@ export async function connectBank(publicToken: string): Promise<Result> {
 // Pull the latest from one connected bank.
 export async function syncBank(itemId: string): Promise<Result> {
   const { userId } = await requireTwoFactorUser();
+  if (!ITEM_ID.test(String(itemId))) return { ok: false, message: "That bank connection wasn't found." };
   const admin = createAdminClient();
   const { data: item } = await admin
     .from("plaid_items")
@@ -84,5 +103,5 @@ export async function syncBank(itemId: string): Promise<Result> {
   revalidatePath("/");
   return result.ok
     ? { ok: true, message: `Synced. ${result.added} new or updated, ${result.removed} removed.` }
-    : { ok: false, message: `Sync failed (${result.code}).` };
+    : { ok: false, message: needsSignIn(result.code) ? "Your bank still needs you to sign in." : `Sync failed (${result.code}).` };
 }

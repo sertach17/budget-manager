@@ -3,9 +3,10 @@ import { Suspense } from "react";
 import { AppHeader } from "../app-header";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { isPlaidConfigured, plaidEnv } from "@/lib/plaid/client";
+import { bankStatus } from "@/lib/plaid/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { gmailConfirmLink } from "@/lib/venmo/parse";
-import { ConnectBankButton } from "./connect-button";
+import { ConnectBankButton, FixBankButton } from "./connect-button";
 import { SyncButton } from "./sync-button";
 import { clearGmailConfirmation } from "./venmo-actions";
 import { OwnAccounts } from "./own-accounts";
@@ -60,24 +61,31 @@ async function Banks() {
 
       <ConnectBankButton />
       <p className="mt-2 text-xs text-black/50 dark:text-white/50">
-        You sign in to your bank on Plaid&apos;s screen. Your bank password never reaches this app.
+        You sign in to your bank on Plaid&apos;s screen. Your bank password never reaches this app. Connected banks sync by
+        themselves every morning around 6 AM.
       </p>
 
       <ul className="mt-8 space-y-4">
         {(items ?? []).map((item) => {
           const itemAccounts = (accounts ?? []).filter((a) => a.plaid_item_id === item.id);
+          const status = bankStatus(item);
           return (
             <li key={item.id} className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium">{item.institution_name ?? "Bank"}</p>
                   <p className="text-xs text-black/50 dark:text-white/50">Last synced {when(item.last_synced_at)}</p>
-                  {item.last_error ? (
-                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">Last sync hit {item.last_error}</p>
+                  {status.kind !== "ok" ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">{status.message}</p>
                   ) : null}
                 </div>
                 <SyncButton itemId={item.id} />
               </div>
+              {status.kind === "sign-in" ? (
+                <div className="mt-3">
+                  <FixBankButton itemId={item.id} bank={item.institution_name ?? "your bank"} />
+                </div>
+              ) : null}
               <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/10">
                 {itemAccounts.map((a) => (
                   <li key={a.id} className="flex justify-between gap-3 py-2">
