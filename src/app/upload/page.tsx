@@ -25,7 +25,7 @@ export default function UploadPage({ searchParams }: { searchParams: Promise<{ a
       <AppHeader />
       <h1 className="mt-6 text-xl font-semibold">Upload a statement</h1>
       <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-        Add the transactions from a file you download, like an Apple Card export, to one of your own accounts.
+        Add the transactions from a file you download, like an Apple Card export, or from a screenshot, to one of your own accounts.
       </p>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Upload searchParams={searchParams} />

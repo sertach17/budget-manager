@@ -11,7 +11,7 @@ import { CategoryBudgetView } from "../budget/category-view";
 import { DashboardView } from "../dashboard-view";
 import { TransactionsView } from "../transactions/transactions-view";
 import { StatementUpload } from "../upload/statement-upload";
-import { demoStatementCsv } from "@/lib/demo/data";
+import { demoScreenshotRows, demoStatementCsv } from "@/lib/demo/data";
 import { useDemo } from "./demo-state";
 
 // The demo's pages. Each one is the real site's page fed with made-up data.
@@ -206,15 +206,20 @@ export function DemoUpload() {
       <AppHeader demo />
       <h1 className="mt-6 text-xl font-semibold">Upload a statement</h1>
       <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-        Add the transactions from a file you download, like an Apple Card export, to one of your own accounts.
+        Add the transactions from a file you download, like an Apple Card export, or from a screenshot, to one of your own accounts.
       </p>
       <StatementUpload
         accounts={accounts}
         initialAccountId={params.get("account") ?? undefined}
         base="/demo"
         sample={{ fileName: "Sample Pay Card export.csv", text: demoStatementCsv(today) }}
+        sampleScreenshot={demoScreenshotRows(today)}
         onCheck={checkUpload}
         onSave={saveUpload}
+        onReadScreenshot={async () => ({
+          ok: false,
+          message: "Reading real screenshots is off in the demo. Try the made-up sample screenshot.",
+        })}
       />
     </>
   );

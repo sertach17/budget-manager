@@ -134,4 +134,8 @@ test("fingerprints match across overlapping files and tell same-day twins apart"
   assert.notEqual(a[0], a[2]);
   const b = statementFingerprints("acc", [coffee, coffee]);
   assert.deepEqual(b, a.slice(0, 2));
+  // A screenshot shows the merchant name the export also has.
+  const fromExport = { postedOn: "2026-11-02", amount: -4.5, description: "CORNER CAFE 21 ELM ST", merchant: "Corner Cafe" };
+  const fromScreenshot = { postedOn: "2026-11-02", amount: -4.5, description: "Corner Cafe", merchant: "Corner Cafe" };
+  assert.deepEqual(statementFingerprints("acc", [fromExport]), statementFingerprints("acc", [fromScreenshot]));
 });

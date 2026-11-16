@@ -185,3 +185,19 @@ export function demoStatementCsv(today: string) {
     ...rows.map(([back, ...rest]) => [at(back), at(Math.max(back - 1, 0)), ...rest, "Demo Person"].map((v) => `"${v}"`).join(",")),
   ].join("\n");
 }
+
+// What the demo's made-up screenshot "reads" as: a phone's recent list, two
+// rows the sample file also has and two new ones.
+export function demoScreenshotRows(today: string) {
+  const at = (daysBack: number) => {
+    const d = new Date(`${today}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - daysBack);
+    return d.toISOString().slice(0, 10);
+  };
+  return [
+    { postedOn: at(0), description: "Green Leaf Market", merchant: "Green Leaf Market", amount: -18.6, category: "FOOD_AND_DRINK_GROCERIES" },
+    { postedOn: at(0), description: "City Parking", merchant: "City Parking", amount: -4, category: "TRANSPORTATION_PARKING" },
+    { postedOn: at(1), description: "Sunny Side Cafe", merchant: "Sunny Side Cafe", amount: -8.4, category: "FOOD_AND_DRINK_RESTAURANT" },
+    { postedOn: at(2), description: "Bright Mart", merchant: "Bright Mart", amount: -56.12, category: "FOOD_AND_DRINK_GROCERIES" },
+  ];
+}

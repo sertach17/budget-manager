@@ -107,7 +107,7 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     (accountId: string) => {
       const rows = base.transactions
         .filter((t) => t.accountId === accountId)
-        .map((t) => ({ postedOn: t.postedOn, amount: t.amount, description: t.description }));
+        .map((t) => ({ postedOn: t.postedOn, amount: t.amount, description: t.description, merchant: t.merchant }));
       return new Set([...statementFingerprints(accountId, rows), ...uploadedPrints]);
     },
     [base, uploadedPrints],
