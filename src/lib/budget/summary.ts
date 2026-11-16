@@ -15,7 +15,7 @@ export type MonthSummary = {
   budgeted: number;
   byCategory: CategorySpend[];
   recent: Transaction[];
-  today: Transaction[]; // everything posted today, newest bank order kept
+  toReview: Transaction[]; // not reviewed yet, newest first
   // Spending so far this month, added up day by day: spentByDay[0] is the
   // total at the end of day 1, and the last entry is today's total.
   spentByDay: number[];
@@ -85,7 +85,9 @@ export function summarizeMonth(data: BudgetData, today: string, recentCount = 8)
     budgeted: round(byCategory.reduce((sum, row) => sum + (row.budget ?? 0), 0)),
     byCategory,
     recent,
-    today: data.transactions.filter((t) => t.postedOn === today),
+    toReview: data.transactions
+      .filter((t) => t.reviewed === false)
+      .sort((a, b) => (a.postedOn === b.postedOn ? a.id.localeCompare(b.id) : b.postedOn.localeCompare(a.postedOn))),
     spentByDay,
     netWorth: round(data.accounts.reduce((sum, a) => sum + signedBalance(a), 0)),
   };

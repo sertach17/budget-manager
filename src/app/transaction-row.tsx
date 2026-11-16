@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setTransactionCategory } from "./transactions/actions";
+import { markReviewed, setTransactionCategory } from "./transactions/actions";
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -13,24 +13,44 @@ export type RowTransaction = {
   detail: string; // e.g. "Restaurants · Chase Checking ···7682"
   color: string;
   categoryId: string | null; // your category, or null when it follows the bank's
+  reviewed: boolean;
 };
 
-// One transaction. Tap it to move it to another of your categories.
-// `onMove` replaces saving to the database; the demo uses it to keep moves
-// in the page only.
+// One transaction. Tap it to move it to another of your categories, or to
+// mark it reviewed. `onMove` and `onReview` replace saving to the database;
+// the demo uses them to keep changes in the page only.
 export function TransactionRow({
   t,
   categories,
   onMove,
+  onReview,
 }: {
   t: RowTransaction;
   categories: { id: string; name: string }[];
   onMove?: (transactionId: string, categoryId: string) => void;
+  onReview?: (transactionIds: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState(t.categoryId ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  const [reviewing, startReviewing] = useTransition();
+
+  const review = () =>
+    startReviewing(async () => {
+      if (onReview) {
+        onReview([t.id]);
+        setOpen(false);
+        return;
+      }
+      const result = await markReviewed([t.id]);
+      if (result.ok) {
+        setOpen(false);
+        setMessage(null);
+      } else {
+        setMessage(result.message ?? "Couldn't mark it reviewed.");
+      }
+    });
 
   const save = () =>
     startSaving(async () => {
@@ -63,6 +83,7 @@ export function TransactionRow({
             <span className="block truncate text-xs text-black/50 dark:text-white/50">
               {t.detail}
               {t.pending ? " · Pending" : ""}
+              {t.reviewed ? "" : " · To review"}
             </span>
           </span>
         </span>
@@ -97,6 +118,16 @@ export function TransactionRow({
           >
             {saving ? "Saving…" : "Move"}
           </button>
+          {t.reviewed ? null : (
+            <button
+              type="button"
+              onClick={review}
+              disabled={reviewing}
+              className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-700 disabled:opacity-50 dark:text-emerald-400"
+            >
+              {reviewing ? "Saving…" : "Mark reviewed"}
+            </button>
+          )}
           <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm">
             Cancel
           </button>

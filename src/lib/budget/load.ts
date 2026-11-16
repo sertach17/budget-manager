@@ -4,7 +4,10 @@ import { budgetDataFromRows } from "./from-db";
 import { easternToday } from "@/lib/dates";
 import type { BudgetData } from "./types";
 
-const COLUMNS = "id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category";
+const COLUMNS = "id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category, reviewed_at";
+
+// The most transactions "Pending to review" loads at once.
+const TO_REVIEW = 200;
 
 export type LoadedMonth =
   | { ok: true; data: BudgetData; today: string; hasCategories: boolean; yourCategories: { id: string; name: string }[] }
@@ -19,7 +22,7 @@ export async function loadMonth(): Promise<LoadedMonth> {
   const today = easternToday();
   const monthStart = `${today.slice(0, 7)}-01`;
 
-  const [accounts, thisMonth, recent, categories, budgets] = await Promise.all([
+  const [accounts, thisMonth, recent, toReview, categories, budgets] = await Promise.all([
     supabase
       .from("accounts")
       .select("id, name, institution, type, mask, current_balance")
@@ -28,18 +31,26 @@ export async function loadMonth(): Promise<LoadedMonth> {
       .order("name"),
     supabase.from("transactions").select(COLUMNS).gte("posted_on", monthStart).lte("posted_on", today).limit(5000),
     supabase.from("transactions").select(COLUMNS).lte("posted_on", today).order("posted_on", { ascending: false }).limit(20),
+    supabase
+      .from("transactions")
+      .select(COLUMNS)
+      .is("reviewed_at", null)
+      .order("posted_on", { ascending: false })
+      .limit(TO_REVIEW),
     supabase.from("categories").select("id, name, group_name, kind, color, is_excluded, plaid_categories").order("name"),
     supabase.from("budgets").select("category_id, amount, month").or(`month.is.null,month.eq.${monthStart}`),
   ]);
 
-  const failed = [accounts, thisMonth, recent, categories, budgets].find((r) => r.error);
+  const failed = [accounts, thisMonth, recent, toReview, categories, budgets].find((r) => r.error);
   if (failed?.error) {
     console.error("Month query failed:", failed.error.message);
     return { ok: false };
   }
 
-  // Both lists can hold the same row; keep one of each.
-  const transactions = new Map([...(thisMonth.data ?? []), ...(recent.data ?? [])].map((t) => [t.id, t]));
+  // The lists can hold the same row; keep one of each.
+  const transactions = new Map(
+    [...(thisMonth.data ?? []), ...(recent.data ?? []), ...(toReview.data ?? [])].map((t) => [t.id, t]),
+  );
   // A budget for this month wins over the every-month one.
   const sortedBudgets = [...(budgets.data ?? [])].sort((a, b) => (a.month === null ? -1 : 0) - (b.month === null ? -1 : 0));
   const budgetByCategory = new Map(sortedBudgets.map((b) => [b.category_id, b]));

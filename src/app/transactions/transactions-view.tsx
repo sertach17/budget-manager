@@ -19,11 +19,13 @@ export function TransactionsView({
   transactions,
   yourCategories,
   onMove,
+  onReview,
 }: {
   data: BudgetData;
   transactions: Transaction[]; // already newest first
   yourCategories: { id: string; name: string }[];
   onMove?: (transactionId: string, categoryId: string) => void;
+  onReview?: (transactionIds: string[]) => void;
 }) {
   const days = new Map<string, Transaction[]>();
   for (const t of transactions) {
@@ -39,7 +41,7 @@ export function TransactionsView({
           <h2 className="text-sm font-semibold text-black/60 dark:text-white/60">{formatDay(day)}</h2>
           <ul className="mt-2 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
             {toRows(data, list, "category").map((row) => (
-              <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} />
+              <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} onReview={onReview} />
             ))}
           </ul>
         </section>

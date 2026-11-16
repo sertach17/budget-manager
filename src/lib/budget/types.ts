@@ -38,6 +38,8 @@ export type Transaction = {
   merchant: string | null;
   amount: number;
   pending: boolean;
+  // False while it waits under "Pending to review"; left out means reviewed.
+  reviewed?: boolean;
 };
 
 export type Budget = {

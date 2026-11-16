@@ -29,3 +29,26 @@ export async function setTransactionCategory(transactionId: string, categoryId: 
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+// Marks transactions reviewed, which takes them off "Pending to review".
+export async function markReviewed(transactionIds: string[]): Promise<MoveResult> {
+  const { supabase } = await requireTwoFactorUser();
+  const ids = [...new Set(transactionIds)];
+  if (!ids.length || ids.length > 500 || !ids.every((id) => UUID.test(id))) {
+    return { ok: false, message: "Those transactions couldn't be found." };
+  }
+
+  // Row-level security only lets you change your own transactions.
+  const { error } = await supabase
+    .from("transactions")
+    .update({ reviewed_at: new Date().toISOString() })
+    .in("id", ids)
+    .is("reviewed_at", null);
+  if (error) {
+    console.error("Marking transactions reviewed failed:", error.message);
+    return { ok: false, message: "Couldn't mark it reviewed. Try again." };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
