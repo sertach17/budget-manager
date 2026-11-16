@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTwoFactorUser } from "@/lib/auth";
+import { moveOwnBalance } from "@/lib/budget/apply-own-balance";
 import { PLAID_CODE } from "@/lib/budget/plaid-names";
 import { easternToday } from "@/lib/dates";
 import { MAX_ROWS, readDate, statementFingerprints, type StatementFormat, type StatementRow } from "@/lib/statements/parse";
@@ -110,6 +111,7 @@ export async function saveStatement(input: {
   const prints = statementFingerprints(account.id, clean);
   const reviewedAt = input.toReview ? null : new Date().toISOString();
   let added = 0;
+  const addedRows: { postedOn: string; amount: number }[] = [];
   for (let i = 0; i < clean.length; i += CHUNK) {
     const chunk = clean.slice(i, i + CHUNK).map((r, j) => ({
       user_id: userId,
@@ -129,9 +131,10 @@ export async function saveStatement(input: {
     const { data, error } = await supabase
       .from("transactions")
       .upsert(chunk, { onConflict: "user_id,fingerprint", ignoreDuplicates: true })
-      .select("id");
+      .select("id, posted_on, amount");
     if (error) {
       await supabase.from("imports").update({ status: "failed", row_count: added }).eq("id", imported.id);
+      await moveOwnBalance(supabase, account.id, addedRows);
       revalidatePath("/", "layout");
       return {
         ok: false,
@@ -139,7 +142,9 @@ export async function saveStatement(input: {
       };
     }
     added += data?.length ?? 0;
+    for (const row of data ?? []) addedRows.push({ postedOn: row.posted_on, amount: Number(row.amount) });
   }
+  await moveOwnBalance(supabase, account.id, addedRows);
   await supabase.from("imports").update({ status: "done", row_count: added }).eq("id", imported.id);
   revalidatePath("/", "layout");
   const already = clean.length - added;

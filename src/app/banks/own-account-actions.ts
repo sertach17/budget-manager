@@ -66,9 +66,14 @@ export async function updateOwnAccount(id: string, input: OwnAccountInput): Prom
   if (!UUID.test(id)) return { ok: false, message: "That account wasn't found." };
   const checked = check(input);
   if (!checked.row) return { ok: false, message: checked.error! };
+  // A new balance starts counting again from today; renaming the account
+  // keeps the day you last set the balance.
+  const { data: before } = await supabase.from("accounts").select("current_balance").eq("id", id).maybeSingle();
+  const was = before?.current_balance == null ? null : Number(before.current_balance);
+  const balanceChanged = was !== checked.row.current_balance;
   const { data, error } = await supabase
     .from("accounts")
-    .update({ ...checked.row, balance_updated_at: new Date().toISOString() })
+    .update(balanceChanged ? { ...checked.row, balance_updated_at: new Date().toISOString() } : checked.row)
     .eq("id", id)
     .in("source", ["manual", "upload"])
     .select("id");

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTwoFactorUser } from "@/lib/auth";
+import { moveOwnBalance } from "@/lib/budget/apply-own-balance";
 import { incomeCategory } from "@/lib/budget/income-category";
 import { readManualTransaction, type ManualInput } from "@/lib/budget/manual-transaction";
 import { easternToday } from "@/lib/dates";
@@ -55,6 +56,8 @@ export async function addTransaction(accountId: string, input: ManualInput): Pro
       return { ok: false, message: "Couldn't add it. Try again." };
     }
   }
+
+  await moveOwnBalance(supabase, account.id, [row]);
 
   revalidatePath("/", "layout");
   return { ok: true, message: `Added ${row.description} to ${account.name}.` };
