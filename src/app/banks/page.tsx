@@ -8,6 +8,7 @@ import { gmailConfirmLink } from "@/lib/venmo/parse";
 import { ConnectBankButton } from "./connect-button";
 import { SyncButton } from "./sync-button";
 import { clearGmailConfirmation } from "./venmo-actions";
+import { OwnAccounts } from "./own-accounts";
 import { CorrectBalanceForm, StartVenmoForm } from "./venmo-forms";
 
 export const metadata: Metadata = { title: "Banks · Budget Manager" };
@@ -93,6 +94,37 @@ async function Banks() {
         })}
       </ul>
     </div>
+  );
+}
+
+// Accounts you added yourself, filled by uploads instead of a bank link.
+async function YourAccounts() {
+  const { supabase } = await requireTwoFactorUser();
+  const { data: accounts, error } = await supabase
+    .from("accounts")
+    .select("id, name, institution, type, mask, current_balance")
+    .in("source", ["manual", "upload"])
+    .order("created_at");
+  if (error) {
+    return <p className="mt-10 text-sm text-red-600 dark:text-red-400">Your own accounts couldn&apos;t load. Try again in a minute.</p>;
+  }
+  const counts = await Promise.all(
+    (accounts ?? []).map((a) =>
+      supabase.from("transactions").select("id", { count: "exact", head: true }).eq("account_id", a.id),
+    ),
+  );
+  return (
+    <OwnAccounts
+      accounts={(accounts ?? []).map((a, i) => ({
+        id: a.id,
+        name: a.name,
+        institution: a.institution,
+        type: a.type,
+        mask: a.mask,
+        balance: a.current_balance === null ? null : Number(a.current_balance),
+        transactionCount: counts[i].count ?? 0,
+      }))}
+    />
   );
 }
 
@@ -207,6 +239,9 @@ export default function BanksPage() {
       <h1 className="mt-6 text-xl font-semibold">Banks</h1>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Banks />
+      </Suspense>
+      <Suspense fallback={null}>
+        <YourAccounts />
       </Suspense>
       <Suspense fallback={null}>
         <Venmo />
