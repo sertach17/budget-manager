@@ -2,7 +2,7 @@
 // Every sample here is made up, in the layout each bank uses.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { categoryCode, parseStatement, readAmount, readCsv, readDate, statementFingerprints } from "./parse.ts";
+import { categoryCode, mergeStatements, parseStatement, readAmount, readCsv, readDate, statementFingerprints } from "./parse.ts";
 
 test("reads dates and amounts the ways banks write them", () => {
   assert.equal(readDate("11/03/2026"), "2026-11-03");
@@ -138,4 +138,15 @@ test("fingerprints match across overlapping files and tell same-day twins apart"
   const fromExport = { postedOn: "2026-11-02", amount: -4.5, description: "CORNER CAFE 21 ELM ST", merchant: "Corner Cafe" };
   const fromScreenshot = { postedOn: "2026-11-02", amount: -4.5, description: "Corner Cafe", merchant: "Corner Cafe" };
   assert.deepEqual(statementFingerprints("acc", [fromExport]), statementFingerprints("acc", [fromScreenshot]));
+});
+
+test("files that overlap keep each transaction once, but twins in one file stay", () => {
+  const coffee = { postedOn: "2026-11-10", amount: -4.5, description: "COFFEE", merchant: "Coffee", category: null };
+  const lunch = { postedOn: "2026-11-11", amount: -12, description: "LUNCH", merchant: "Lunch", category: null };
+  const gas = { postedOn: "2026-11-12", amount: -40, description: "GAS", merchant: "Gas", category: null };
+  const first = [coffee, coffee, lunch];
+  const second = [lunch, coffee, gas];
+  const merged = mergeStatements("acc", [first, second]);
+  assert.deepEqual(merged.rows, [coffee, coffee, lunch, gas]);
+  assert.equal(merged.overlap, 2);
 });

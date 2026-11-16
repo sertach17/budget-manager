@@ -3,7 +3,7 @@
 import type { PickCategory } from "@/lib/budget/types";
 import { useState, useTransition } from "react";
 import { markReviewed, setTransactionCategory } from "./transactions/actions";
-import { NEW_INCOME } from "./transactions/new-income";
+import { CategoryOptions } from "./category-options";
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -37,9 +37,6 @@ export function TransactionRow({
   const [message, setMessage] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [reviewing, startReviewing] = useTransition();
-  const income = categories.filter((c) => c.kind === "income");
-  const transfers = categories.filter((c) => c.kind === "transfer");
-  const spending = categories.filter((c) => c.kind !== "income" && c.kind !== "transfer");
 
   const review = () =>
     startReviewing(async () => {
@@ -109,36 +106,7 @@ export function TransactionRow({
             className="min-w-0 flex-1 rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900"
           >
             <option value="">Sort by my bank&apos;s category</option>
-            {spending.length ? (
-              <optgroup label="Spending">
-                {spending.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            <optgroup label="Income">
-              {income.length ? (
-                income.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))
-              ) : (
-                // You have no income category yet; picking this makes one.
-                <option value={NEW_INCOME}>Income</option>
-              )}
-            </optgroup>
-            {transfers.length ? (
-              <optgroup label="Transfers (not counted)">
-                {transfers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
+            <CategoryOptions categories={categories} />
           </select>
           <button
             type="button"

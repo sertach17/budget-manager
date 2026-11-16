@@ -2,6 +2,7 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import { AccountView } from "../accounts/account-view";
+import { AccountsFooter, AccountsList } from "../accounts/accounts-list";
 import { IncomeView } from "../income/income-view";
 import { summarizeMonth } from "@/lib/budget/summary";
 import { OwnAccounts } from "../banks/own-accounts";
@@ -83,8 +84,25 @@ export function DemoIncome() {
   );
 }
 
+export function DemoAccounts() {
+  const { data } = useDemo();
+  const accounts = [...data.accounts].sort(
+    (a, b) => (a.institution ?? "").localeCompare(b.institution ?? "") || a.name.localeCompare(b.name),
+  );
+  return (
+    <>
+      <AppHeader demo active="accounts" />
+      <h1 className="sr-only">Accounts</h1>
+      <div className="mt-6">
+        <AccountsList accounts={accounts} base="/demo" />
+        <AccountsFooter base="/demo" />
+      </div>
+    </>
+  );
+}
+
 export function DemoAccount() {
-  const { data, yourCategories, move, review } = useDemo();
+  const { data, today, yourCategories, move, review, ownAccountIds, addManual, checkUpload, saveUpload } = useDemo();
   const params = useParams<{ id: string }>();
   const id = decodeURIComponent(params.id ?? "");
   const transactions = data.transactions
@@ -92,15 +110,28 @@ export function DemoAccount() {
     .sort((a, b) => b.postedOn.localeCompare(a.postedOn) || a.id.localeCompare(b.id));
   return (
     <>
-      <AppHeader demo active="dashboard" />
+      <AppHeader demo active="accounts" />
       <AccountView
         data={data}
         accountId={id}
         transactions={transactions}
         yourCategories={yourCategories}
         base="/demo"
+        own={ownAccountIds.has(id)}
+        today={today}
         onMove={move}
         onReview={review}
+        onAdd={addManual}
+        upload={{
+          sample: { fileName: "Sample Pay Card export.csv", text: demoStatementCsv(today) },
+          sampleScreenshot: demoScreenshotRows(today),
+          onCheck: checkUpload,
+          onSave: saveUpload,
+          onReadScreenshot: async () => ({
+            ok: false,
+            message: "Reading real screenshots is off in the demo. Try the made-up sample screenshot.",
+          }),
+        }}
       />
     </>
   );
@@ -206,7 +237,7 @@ export function DemoUpload() {
       <AppHeader demo />
       <h1 className="mt-6 text-xl font-semibold">Upload a statement</h1>
       <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-        Add the transactions from a file you download, like an Apple Card export, or from a screenshot, to one of your own accounts.
+        Add the transactions from files you download, like Apple Card exports, or from screenshots, to one of your own accounts. You can pick several at once.
       </p>
       <StatementUpload
         accounts={accounts}

@@ -375,3 +375,24 @@ export function statementFingerprints(
     return n === 1 ? key : `${key}:${n}`;
   });
 }
+
+// Rows from several files or screenshots of one account, put together. A
+// transaction that shows up in more than one of them (screenshots that
+// overlap, say) is kept once; twins inside one file stay twins.
+export function mergeStatements(accountId: string, lists: StatementRow[][]) {
+  const seen = new Set<string>();
+  const rows: StatementRow[] = [];
+  let overlap = 0;
+  for (const list of lists) {
+    const prints = statementFingerprints(accountId, list);
+    list.forEach((row, i) => {
+      if (seen.has(prints[i])) {
+        overlap++;
+        return;
+      }
+      seen.add(prints[i]);
+      rows.push(row);
+    });
+  }
+  return { rows, overlap };
+}

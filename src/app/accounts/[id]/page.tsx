@@ -21,7 +21,7 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
   const today = easternToday();
 
   const [accounts, transactions, categories] = await Promise.all([
-    supabase.from("accounts").select("id, name, institution, type, mask, current_balance").eq("id", id),
+    supabase.from("accounts").select("id, name, institution, type, mask, current_balance, source").eq("id", id),
     supabase
       .from("transactions")
       .select("id, account_id, category_id, posted_on, description, merchant, amount, pending, plaid_category, reviewed_at")
@@ -50,7 +50,14 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <AccountView data={data} accountId={id} transactions={data.transactions} yourCategories={yourCategories} />
+      <AccountView
+        data={data}
+        accountId={id}
+        transactions={data.transactions}
+        yourCategories={yourCategories}
+        own={accounts.data[0].source === "manual" || accounts.data[0].source === "upload"}
+        today={today}
+      />
       {(transactions.data?.length ?? 0) >= SHOWN ? (
         <p className="mt-6 text-xs text-black/50 dark:text-white/50">Showing this account&apos;s latest {SHOWN} transactions.</p>
       ) : null}
@@ -61,7 +68,7 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
 export default function AccountPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <AppHeader active="dashboard" />
+      <AppHeader active="accounts" />
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <Account params={params} />
       </Suspense>
