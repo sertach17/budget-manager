@@ -46,7 +46,7 @@ async function Account({ params }: { params: Promise<{ id: string }> }) {
     categories: categories.data ?? [],
     budgets: [],
   });
-  const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim() }));
+  const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim(), kind: c.kind }));
 
   return (
     <>

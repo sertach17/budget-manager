@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { BudgetData, Transaction } from "@/lib/budget/types";
+import type { BudgetData, Transaction, PickCategory } from "@/lib/budget/types";
 import { TransactionsView } from "../transactions/transactions-view";
 
 // One account and its transactions, grouped by day. Shared by the signed-in
@@ -19,7 +19,7 @@ export function AccountView({
   data: BudgetData;
   accountId: string;
   transactions: Transaction[]; // this account's, newest first
-  yourCategories: { id: string; name: string }[];
+  yourCategories: PickCategory[];
   base?: string;
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;

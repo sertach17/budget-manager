@@ -29,7 +29,8 @@ export async function saveCategory(_prev: CategoryFormState, form: FormData): Pr
   const id = String(form.get("id") ?? "") || null;
   const name = String(form.get("name") ?? "").trim().replace(/\s+/g, " ");
   const kind = String(form.get("kind") ?? "expense");
-  const budget = readBudget(form.get("budget"));
+  // Only spending categories have a budget; income and transfers never count.
+  const budget = kind === "expense" ? readBudget(form.get("budget")) : null;
   const bankCategories = [...new Set(form.getAll("plaid").map(String))].filter((c) => PLAID_CODE.test(c)).slice(0, 60);
 
   if (name.length < 1 || name.length > 60) return { ok: false, message: "Give the category a name (up to 60 letters)." };

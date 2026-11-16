@@ -1,4 +1,5 @@
 import "server-only";
+import type { PickCategory } from "@/lib/budget/types";
 import { requireTwoFactorUser } from "@/lib/auth";
 import { budgetDataFromRows } from "./from-db";
 import { easternToday } from "@/lib/dates";
@@ -10,7 +11,7 @@ const COLUMNS = "id, account_id, category_id, posted_on, description, merchant, 
 const TO_REVIEW = 200;
 
 export type LoadedMonth =
-  | { ok: true; data: BudgetData; today: string; hasCategories: boolean; yourCategories: { id: string; name: string }[] }
+  | { ok: true; data: BudgetData; today: string; hasCategories: boolean; yourCategories: PickCategory[] }
   | { ok: false };
 
 // This month's money for the signed-in user, ready for the dashboard and the
@@ -67,6 +68,6 @@ export async function loadMonth(): Promise<LoadedMonth> {
     data,
     today,
     hasCategories: Boolean(categories.data?.length),
-    yourCategories: (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim() })),
+    yourCategories: (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim(), kind: c.kind })),
   };
 }

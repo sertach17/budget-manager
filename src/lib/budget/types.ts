@@ -53,3 +53,6 @@ export type BudgetData = {
   transactions: Transaction[];
   budgets: Budget[];
 };
+
+// One of your categories, as the move list shows it.
+export type PickCategory = { id: string; name: string; kind?: string };

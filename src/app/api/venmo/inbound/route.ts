@@ -138,6 +138,17 @@ export async function POST(request: Request) {
     return reply(500, "Saving failed.");
   }
 
+  // A cash-out to your bank is money moving between your own accounts, so it
+  // starts out sorted as a transfer, not spending.
+  if (transactionId && event.kind !== "payment") {
+    const { error: sortError } = await admin
+      .from("transactions")
+      .update({ plaid_category: "TRANSFER_OUT_ACCOUNT_TRANSFER" })
+      .eq("id", transactionId)
+      .is("plaid_category", null);
+    if (sortError) console.error("Venmo transfer sorting failed", { message: sortError.message });
+  }
+
   await log(transactionId ? "added" : "duplicate", null, (transactionId as string | null) ?? null);
   return reply(200, "ok");
 }

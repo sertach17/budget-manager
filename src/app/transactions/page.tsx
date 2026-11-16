@@ -43,7 +43,7 @@ async function Transactions() {
     return <p className="mt-8 rounded-2xl border border-dashed border-black/15 p-6 text-sm dark:border-white/20">No transactions yet.</p>;
   }
 
-  const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim() }));
+  const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim(), kind: c.kind }));
 
   return (
     <>

@@ -146,3 +146,24 @@ test("with your own Other category, unmatched spending goes there, not to bank-m
   );
   assert.equal(s.income, 2100);
 });
+
+test("bank transfers go to your own transfer category, which isn't spending", () => {
+  const data = budgetDataFromRows({
+    accounts: [checking],
+    categories: [
+      { id: "other", name: "Other", group_name: null, kind: "expense", color: null, is_excluded: false },
+      { id: "move", name: "Transfers", group_name: null, kind: "transfer", color: null, is_excluded: false },
+    ],
+    budgets: [{ category_id: "other", amount: "100" }],
+    transactions: [
+      row({ id: "a", amount: "-173.64", plaid_category: "TRANSFER_OUT_ACCOUNT_TRANSFER" }),
+      row({ id: "b", amount: "-500", plaid_category: "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT" }),
+      row({ id: "c", amount: "-20", plaid_category: "GENERAL_MERCHANDISE_OTHER_GENERAL_MERCHANDISE" }),
+    ],
+  });
+  assert.equal(data.transactions.find((t) => t.id === "a")?.categoryId, "move");
+  assert.equal(data.transactions.find((t) => t.id === "b")?.categoryId, "move");
+  const s = summarizeMonth(data, "2026-11-15");
+  assert.equal(s.spent, 20);
+  assert.deepEqual(s.byCategory.map((c) => c.category.name), ["Other"]);
+});

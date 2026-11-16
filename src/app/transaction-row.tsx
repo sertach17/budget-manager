@@ -1,5 +1,6 @@
 "use client";
 
+import type { PickCategory } from "@/lib/budget/types";
 import { useState, useTransition } from "react";
 import { markReviewed, setTransactionCategory } from "./transactions/actions";
 
@@ -26,7 +27,7 @@ export function TransactionRow({
   onReview,
 }: {
   t: RowTransaction;
-  categories: { id: string; name: string }[];
+  categories: PickCategory[];
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;
 }) {
@@ -106,7 +107,7 @@ export function TransactionRow({
             <option value="">Sort by my bank&apos;s category</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.kind === "transfer" ? `${c.name} (transfer, not counted)` : c.name}
               </option>
             ))}
           </select>

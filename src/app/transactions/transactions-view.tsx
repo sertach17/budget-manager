@@ -1,4 +1,4 @@
-import type { BudgetData, Transaction } from "@/lib/budget/types";
+import type { BudgetData, Transaction, PickCategory } from "@/lib/budget/types";
 import { toRows } from "../budget/rows";
 import { TransactionRow } from "../transaction-row";
 
@@ -23,7 +23,7 @@ export function TransactionsView({
 }: {
   data: BudgetData;
   transactions: Transaction[]; // already newest first
-  yourCategories: { id: string; name: string }[];
+  yourCategories: PickCategory[];
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;
 }) {
