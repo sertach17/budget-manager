@@ -1,9 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { Account, AccountType, BudgetData, PickCategory } from "@/lib/budget/types";
+import type { Account, AccountType, BudgetData, PickCategory, Transaction } from "@/lib/budget/types";
 import type { OwnAccountInput, OwnAccountResult } from "@/app/banks/own-account-actions";
+import type { CheckResult, SaveResult } from "@/app/upload/actions";
+import { plaidGroup } from "@/lib/budget/from-db";
 import { demoData, demoOwnAccounts } from "@/lib/demo/data";
+import { statementFingerprints, type StatementFormat, type StatementRow } from "@/lib/statements/parse";
 
 // The demo's made-up data, plus any transactions a visitor moved to another
 // category or marked reviewed. Changes live only in this browser tab: nothing
@@ -19,7 +22,35 @@ type DemoState = {
   addAccount: (input: OwnAccountInput) => Promise<OwnAccountResult>;
   updateAccount: (id: string, input: OwnAccountInput) => Promise<OwnAccountResult>;
   deleteAccount: (id: string) => Promise<OwnAccountResult>;
+  checkUpload: (accountId: string, rows: StatementRow[]) => Promise<CheckResult>;
+  saveUpload: (input: {
+    accountId: string;
+    fileName: string;
+    format: StatementFormat;
+    rows: StatementRow[];
+    toReview: boolean;
+  }) => Promise<SaveResult>;
 };
+
+// Which demo category a statement row's bank-style category lands in.
+const DEMO_CATEGORY: Record<string, string> = {
+  FOOD_AND_DRINK_RESTAURANT: "cat-dining",
+  FOOD_AND_DRINK_GROCERIES: "cat-groceries",
+  TRANSPORTATION_GAS: "cat-gas",
+  GENERAL_MERCHANDISE: "cat-shopping",
+  ENTERTAINMENT: "cat-fun",
+  RENT_AND_UTILITIES: "cat-utilities",
+  LOAN_PAYMENTS_CREDIT_CARD_PAYMENT: "cat-transfer",
+  TRANSFER_IN: "cat-transfer",
+  TRANSFER_OUT: "cat-transfer",
+  INCOME: "cat-paycheck",
+};
+
+function demoCategoryFor(row: StatementRow) {
+  const code = row.category;
+  const found = code ? (DEMO_CATEGORY[code] ?? DEMO_CATEGORY[plaidGroup(code) ?? ""]) : undefined;
+  return found ?? (row.amount > 0 ? "cat-transfer" : "cat-shopping");
+}
 
 const TYPES: AccountType[] = ["checking", "savings", "credit", "cash", "investment", "loan", "other"];
 
@@ -50,6 +81,8 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
   const [moves, setMoves] = useState<Record<string, string>>({});
   const [reviewed, setReviewed] = useState<ReadonlySet<string>>(() => new Set());
   const [ownAccounts, setOwnAccounts] = useState<Account[]>(demoOwnAccounts);
+  const [uploaded, setUploaded] = useState<Transaction[]>([]);
+  const [uploadedPrints, setUploadedPrints] = useState<ReadonlySet<string>>(() => new Set());
 
   const addAccount = useCallback(async (input: OwnAccountInput): Promise<OwnAccountResult> => {
     const account = toAccount(`acc-own-${Date.now()}`, input);
@@ -67,6 +100,62 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     setOwnAccounts((current) => current.filter((a) => a.id !== id));
     return { ok: true, message: "Deleted." };
   }, []);
+
+  // Fingerprints of what an account already has, worked out the same way
+  // the signed-in site does it.
+  const existing = useCallback(
+    (accountId: string) => {
+      const rows = base.transactions
+        .filter((t) => t.accountId === accountId)
+        .map((t) => ({ postedOn: t.postedOn, amount: t.amount, description: t.description }));
+      return new Set([...statementFingerprints(accountId, rows), ...uploadedPrints]);
+    },
+    [base, uploadedPrints],
+  );
+  const checkUpload = useCallback(
+    async (accountId: string, rows: StatementRow[]): Promise<CheckResult> => {
+      if (!ownAccounts.some((a) => a.id === accountId)) return { ok: false, message: "Pick one of your own accounts." };
+      const have = existing(accountId);
+      return { ok: true, already: statementFingerprints(accountId, rows).map((p) => have.has(p)) };
+    },
+    [ownAccounts, existing],
+  );
+  const saveUpload = useCallback(
+    async (input: { accountId: string; rows: StatementRow[]; toReview: boolean }): Promise<SaveResult> => {
+      const account = ownAccounts.find((a) => a.id === input.accountId);
+      if (!account) return { ok: false, message: "Pick one of your own accounts." };
+      const have = existing(account.id);
+      const prints = statementFingerprints(account.id, input.rows);
+      const stamp = Date.now();
+      const added: Transaction[] = input.rows
+        .map((r, i) => ({ r, print: prints[i], i }))
+        .filter(({ print }) => !have.has(print))
+        .map(({ r, i }) => ({
+          id: `up-${stamp}-${i}`,
+          accountId: account.id,
+          categoryId: demoCategoryFor(r),
+          postedOn: r.postedOn,
+          // The real site shows the cleaner merchant name when there is one.
+          description: r.merchant || r.description,
+          merchant: r.merchant,
+          amount: r.amount,
+          pending: false,
+          reviewed: !input.toReview,
+        }));
+      setUploaded((current) => [...current, ...added]);
+      setUploadedPrints((current) => new Set([...current, ...prints]));
+      const already = input.rows.length - added.length;
+      return {
+        ok: true,
+        added: added.length,
+        already,
+        message: `Added ${added.length} ${added.length === 1 ? "transaction" : "transactions"} to ${account.name}${
+          already ? `, skipped ${already} you already had` : ""
+        }. The demo forgets them when you reload.`,
+      };
+    },
+    [ownAccounts, existing],
+  );
 
   const review = useCallback((transactionIds: string[]) => {
     setReviewed((current) => new Set([...current, ...transactionIds]));
@@ -88,7 +177,7 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     const startedOwn = new Set(demoOwnAccounts.map((a) => a.id));
     const linked = base.accounts.filter((a) => !startedOwn.has(a.id));
     // A deleted own account takes its transactions with it.
-    const kept = base.transactions.filter((t) => !startedOwn.has(t.accountId) || own.has(t.accountId));
+    const kept = [...base.transactions.filter((t) => !startedOwn.has(t.accountId) || own.has(t.accountId)), ...uploaded.filter((t) => own.has(t.accountId))];
     const data = {
       ...base,
       accounts: [...linked, ...ownAccounts],
@@ -100,8 +189,20 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     const yourCategories = [...base.categories]
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((c) => ({ id: c.id, name: c.name, kind: c.kind }));
-    return { data, today, yourCategories, move, review, ownAccountIds: own, addAccount, updateAccount, deleteAccount };
-  }, [base, moves, reviewed, ownAccounts, today, move, review, addAccount, updateAccount, deleteAccount]);
+    return {
+      data,
+      today,
+      yourCategories,
+      move,
+      review,
+      ownAccountIds: own,
+      addAccount,
+      updateAccount,
+      deleteAccount,
+      checkUpload,
+      saveUpload,
+    };
+  }, [base, moves, reviewed, ownAccounts, uploaded, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }

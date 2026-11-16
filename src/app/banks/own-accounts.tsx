@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   addOwnAccount,
@@ -87,7 +88,7 @@ function Fields({ value, onChange }: { value: OwnAccountInput; onChange: (v: Own
 
 const EMPTY: OwnAccountInput = { name: "", institution: "", type: "credit", mask: "", balance: "" };
 
-function AccountItem({ account, onUpdate, onDelete }: { account: OwnAccount } & Handlers) {
+function AccountItem({ account, base, onUpdate, onDelete }: { account: OwnAccount; base: string } & Handlers) {
   const [mode, setMode] = useState<"view" | "edit" | "confirm">("view");
   const [value, setValue] = useState<OwnAccountInput>({
     name: account.name,
@@ -132,6 +133,12 @@ function AccountItem({ account, onUpdate, onDelete }: { account: OwnAccount } & 
           </span>
           {mode === "view" ? (
             <>
+              <Link
+                href={`${base}/upload?account=${encodeURIComponent(account.id)}`}
+                className="rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white dark:bg-emerald-500"
+              >
+                Upload
+              </Link>
               <button type="button" onClick={() => setMode("edit")} className="rounded-lg border border-black/15 px-2 py-1 text-xs dark:border-white/20">
                 Edit
               </button>
@@ -186,7 +193,13 @@ function AccountItem({ account, onUpdate, onDelete }: { account: OwnAccount } & 
 
 // "Your own accounts" on the Banks page. The demo passes handlers that keep
 // changes in the page; the signed-in site saves them.
-export function OwnAccounts({ accounts, onAdd, onUpdate, onDelete }: { accounts: OwnAccount[] } & Handlers) {
+export function OwnAccounts({
+  accounts,
+  base = "",
+  onAdd,
+  onUpdate,
+  onDelete,
+}: { accounts: OwnAccount[]; base?: string } & Handlers) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<OwnAccountInput>(EMPTY);
   const [result, setResult] = useState<OwnAccountResult | null>(null);
@@ -206,12 +219,12 @@ export function OwnAccounts({ accounts, onAdd, onUpdate, onDelete }: { accounts:
     <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/15">
       <p className="font-medium">Your own accounts</p>
       <p className="text-xs text-black/50 dark:text-white/50">
-        For accounts no bank link reaches, like Apple Card or Apple Cash. You upload their statements.
+        For accounts no bank link reaches, like Apple Card or Apple Cash. Tap Upload to add a statement file to one.
       </p>
       {accounts.length ? (
         <ul className="mt-3 divide-y divide-black/10 dark:divide-white/10">
           {accounts.map((a) => (
-            <AccountItem key={a.id} account={a} onUpdate={onUpdate} onDelete={onDelete} />
+            <AccountItem key={a.id} account={a} base={base} onUpdate={onUpdate} onDelete={onDelete} />
           ))}
         </ul>
       ) : null}

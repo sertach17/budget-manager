@@ -162,3 +162,26 @@ export function demoData(today: string): BudgetData {
 
   return { accounts: [...accounts, ...demoOwnAccounts], categories, transactions, budgets };
 }
+
+// A made-up Apple Card style export for the demo's upload page, dated in the
+// last few weeks before `today` so it lands in the current views.
+export function demoStatementCsv(today: string) {
+  const at = (daysBack: number) => {
+    const d = new Date(`${today}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - daysBack);
+    return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}/${d.getUTCFullYear()}`;
+  };
+  const rows: [number, string, string, string, string, string][] = [
+    [1, "SUNNY SIDE CAFE 21 ELM ST", "Sunny Side Cafe", "Restaurants", "Purchase", "8.40"],
+    [2, "BRIGHT MART #204", "Bright Mart", "Grocery", "Purchase", "56.12"],
+    [4, "QUICKFUEL 88", "QuickFuel", "Gas", "Purchase", "41.30"],
+    [6, "PAGE TURNER BOOKS", "Page Turner Books", "Shopping", "Purchase", "23.75"],
+    [8, "STARLIGHT CINEMA", "Starlight Cinema", "Entertainment", "Purchase", "27.00"],
+    [9, "ACH DEPOSIT INTERNET TRANSFER", "Payment", "Payment", "Payment", "-150.00"],
+    [11, "SUNNY SIDE CAFE 21 ELM ST", "Sunny Side Cafe", "Restaurants", "Purchase", "6.95"],
+  ];
+  return [
+    '"Transaction Date","Clearing Date","Description","Merchant","Category","Type","Amount (USD)","Purchased By"',
+    ...rows.map(([back, ...rest]) => [at(back), at(Math.max(back - 1, 0)), ...rest, "Demo Person"].map((v) => `"${v}"`).join(",")),
+  ].join("\n");
+}

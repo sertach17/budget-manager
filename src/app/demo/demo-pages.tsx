@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { AccountView } from "../accounts/account-view";
 import { IncomeView } from "../income/income-view";
 import { summarizeMonth } from "@/lib/budget/summary";
@@ -10,6 +10,8 @@ import { BudgetView } from "../budget/budget-view";
 import { CategoryBudgetView } from "../budget/category-view";
 import { DashboardView } from "../dashboard-view";
 import { TransactionsView } from "../transactions/transactions-view";
+import { StatementUpload } from "../upload/statement-upload";
+import { demoStatementCsv } from "@/lib/demo/data";
 import { useDemo } from "./demo-state";
 
 // The demo's pages. Each one is the real site's page fed with made-up data.
@@ -152,7 +154,7 @@ export function DemoBanks() {
           </li>
         ))}
       </ul>
-      <OwnAccounts accounts={own} onAdd={addAccount} onUpdate={updateAccount} onDelete={deleteAccount} />
+      <OwnAccounts accounts={own} base="/demo" onAdd={addAccount} onUpdate={updateAccount} onDelete={deleteAccount} />
     </>
   );
 }
@@ -189,6 +191,31 @@ export function DemoCategories() {
           );
         })}
       </ul>
+    </>
+  );
+}
+
+export function DemoUpload() {
+  const { data, today, ownAccountIds, checkUpload, saveUpload } = useDemo();
+  const params = useSearchParams();
+  const accounts = data.accounts
+    .filter((a) => ownAccountIds.has(a.id))
+    .map((a) => ({ id: a.id, name: a.name, type: a.type, mask: a.mask }));
+  return (
+    <>
+      <AppHeader demo />
+      <h1 className="mt-6 text-xl font-semibold">Upload a statement</h1>
+      <p className="mt-2 text-sm text-black/60 dark:text-white/60">
+        Add the transactions from a file you download, like an Apple Card export, to one of your own accounts.
+      </p>
+      <StatementUpload
+        accounts={accounts}
+        initialAccountId={params.get("account") ?? undefined}
+        base="/demo"
+        sample={{ fileName: "Sample Pay Card export.csv", text: demoStatementCsv(today) }}
+        onCheck={checkUpload}
+        onSave={saveUpload}
+      />
     </>
   );
 }
