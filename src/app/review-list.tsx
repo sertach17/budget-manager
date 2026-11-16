@@ -1,5 +1,6 @@
 "use client";
 
+import type { PickCategory } from "@/lib/budget/types";
 import { useState, useTransition } from "react";
 import { TransactionRow, type RowTransaction } from "./transaction-row";
 import { markReviewed } from "./transactions/actions";
@@ -13,7 +14,7 @@ export function ReviewList({
   onReview,
 }: {
   rows: RowTransaction[];
-  categories: { id: string; name: string }[];
+  categories: PickCategory[];
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;
 }) {

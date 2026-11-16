@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { BudgetData } from "@/lib/budget/types";
+import type { BudgetData, PickCategory } from "@/lib/budget/types";
 import { demoData } from "@/lib/demo/data";
 
 // The demo's made-up data, plus any transactions a visitor moved to another
@@ -11,7 +11,7 @@ import { demoData } from "@/lib/demo/data";
 type DemoState = {
   data: BudgetData;
   today: string;
-  yourCategories: { id: string; name: string }[];
+  yourCategories: PickCategory[];
   move: (transactionId: string, categoryId: string) => void;
   review: (transactionIds: string[]) => void;
 };
@@ -48,7 +48,7 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
     };
     const yourCategories = [...base.categories]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((c) => ({ id: c.id, name: c.name }));
+      .map((c) => ({ id: c.id, name: c.name, kind: c.kind }));
     return { data, today, yourCategories, move, review };
   }, [base, moves, reviewed, today, move, review]);
 

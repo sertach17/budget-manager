@@ -169,7 +169,7 @@ export function DemoCategories() {
                 </div>
               </div>
               <span className="shrink-0 tabular-nums text-black/60 dark:text-white/60">
-                {budget !== undefined ? `${wholeMoney.format(budget)}/mo` : "No budget"}
+                {c.kind !== "expense" ? "" : budget !== undefined ? `${wholeMoney.format(budget)}/mo` : "No budget"}
               </span>
             </li>
           );

@@ -29,6 +29,7 @@ function Message({ state }: { state: CategoryFormState }) {
 
 function CategoryFields({ item, bankCategories }: { item?: CategoryItemData; bankCategories: BankCategory[] }) {
   const chosen = new Set(item?.plaidCategories ?? []);
+  const [kind, setKind] = useState(item?.kind ?? "expense");
   return (
     <div className="grid gap-3">
       {item ? <input type="hidden" name="id" value={item.id} /> : null}
@@ -38,17 +39,25 @@ function CategoryFields({ item, bankCategories }: { item?: CategoryItemData; ban
           <input name="name" defaultValue={item?.name ?? ""} required maxLength={60} className={input} />
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-xs text-black/60 dark:text-white/60">Monthly budget</span>
-          <input name="budget" inputMode="decimal" placeholder="No budget" defaultValue={item?.budget ?? ""} className={input} />
-        </label>
-        <label className="text-sm">
           <span className="mb-1 block text-xs text-black/60 dark:text-white/60">Type</span>
-          <select name="kind" defaultValue={item?.kind ?? "expense"} className={input}>
+          <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} className={input}>
             <option value="expense">Spending</option>
             <option value="income">Income</option>
             <option value="transfer">Transfer (not counted)</option>
           </select>
         </label>
+        {kind === "expense" ? (
+          <label className="text-sm">
+            <span className="mb-1 block text-xs text-black/60 dark:text-white/60">Monthly budget</span>
+            <input name="budget" inputMode="decimal" placeholder="No budget" defaultValue={item?.budget ?? ""} className={input} />
+          </label>
+        ) : (
+          <p className="self-end pb-2 text-xs text-black/60 dark:text-white/60">
+            {kind === "transfer"
+              ? "Money moving between your own accounts. It stays off your budget and isn't counted as spending."
+              : "Money coming in. It shows as income, not on your budget."}
+          </p>
+        )}
       </div>
       {bankCategories.length ? (
         <details className="text-sm">
@@ -123,7 +132,7 @@ export function CategoryItem({ item, bankCategories }: { item: CategoryItemData;
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span className="tabular-nums text-black/60 dark:text-white/60">
-            {item.budget !== null ? `${money.format(item.budget)}/mo` : "No budget"}
+            {item.kind !== "expense" ? "" : item.budget !== null ? `${money.format(item.budget)}/mo` : "No budget"}
           </span>
           {mode === "view" ? (
             <>

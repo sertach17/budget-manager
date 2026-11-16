@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { summarizeMonth } from "@/lib/budget/summary";
-import type { BudgetData } from "@/lib/budget/types";
+import type { BudgetData, PickCategory } from "@/lib/budget/types";
 import { TransactionRow } from "../transaction-row";
 import { toRows } from "./rows";
 
@@ -22,7 +22,7 @@ export function CategoryBudgetView({
   data: BudgetData;
   today: string;
   categoryId: string;
-  yourCategories: { id: string; name: string }[];
+  yourCategories: PickCategory[];
   base?: string;
   onMove?: (transactionId: string, categoryId: string) => void;
   onReview?: (transactionIds: string[]) => void;

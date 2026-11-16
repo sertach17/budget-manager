@@ -161,8 +161,13 @@ export function budgetDataFromRows(rows: {
 
   // Once you have your own "Other" category, spending none of your categories
   // picks up goes there, so the budget only ever shows categories you made.
-  // Transfers and income keep their bank-made buckets, which aren't budgets.
+  // Income keeps its bank-made bucket, which isn't a budget.
   const yourOther = rows.categories.find((c) => c.kind === "expense" && c.name.trim().toLowerCase() === "other");
+  // Likewise, once you have a transfer category, the transfers and card
+  // payments your banks flag go there (one named "Transfers" first).
+  const transferKinds = rows.categories.filter((c) => c.kind === "transfer");
+  const yourTransfers =
+    transferKinds.find((c) => c.name.trim().toLowerCase() === "transfers") ?? transferKinds[0];
 
   const accountIds = new Set(accounts.map((a) => a.id));
   const transactions: Transaction[] = [];
@@ -174,6 +179,8 @@ export function budgetDataFromRows(rows: {
       const fallback = fallbackCategory(t);
       if (yourOther && fallback.kind === "expense" && !fallback.isExcluded) {
         categoryId = yourOther.id;
+      } else if (yourTransfers && fallback.kind === "transfer") {
+        categoryId = yourTransfers.id;
       } else {
         if (!categories.has(fallback.id)) categories.set(fallback.id, fallback);
         categoryId = fallback.id;
