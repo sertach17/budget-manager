@@ -77,7 +77,7 @@ export function GoalView({
   return (
     <div className="mt-6">
       {back}
-      <h1 className="mt-3 text-xl font-semibold">{goal.name}</h1>
+      <h1 className="sr-only">{goal.name}</h1>
 
       <div className="mt-4">
         {editing ? (
