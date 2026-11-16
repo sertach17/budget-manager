@@ -4,10 +4,11 @@ import { requireTwoFactorUser } from "@/lib/auth";
 import { budgetDataFromRows } from "@/lib/budget/from-db";
 import { easternToday } from "@/lib/dates";
 import { AppHeader } from "../app-header";
+import { toRows } from "../budget/rows";
+import { TransactionRow } from "../transaction-row";
 
 export const metadata: Metadata = { title: "Transactions · Budget Manager" };
 
-const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const SHOWN = 300;
 
 function formatDay(date: string) {
@@ -33,7 +34,7 @@ async function Transactions() {
       .order("posted_on", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(SHOWN),
-    supabase.from("categories").select("id, name, group_name, kind, color, is_excluded, plaid_categories"),
+    supabase.from("categories").select("id, name, group_name, kind, color, is_excluded, plaid_categories").order("name"),
   ]);
 
   const failed = [accounts, transactions, categories].find((r) => r.error);
@@ -52,8 +53,7 @@ async function Transactions() {
     return <p className="mt-8 rounded-2xl border border-dashed border-black/15 p-6 text-sm dark:border-white/20">No transactions yet.</p>;
   }
 
-  const accountNames = new Map(data.accounts.map((a) => [a.id, a.mask ? `${a.name} ···${a.mask}` : a.name]));
-  const categoryById = new Map(data.categories.map((c) => [c.id, c]));
+  const yourCategories = (categories.data ?? []).map((c) => ({ id: c.id, name: c.name.trim() }));
   const days = new Map<string, typeof data.transactions>();
   for (const t of data.transactions) {
     const list = days.get(t.postedOn) ?? [];
@@ -67,31 +67,9 @@ async function Transactions() {
         <section key={day}>
           <h2 className="text-sm font-semibold text-black/60 dark:text-white/60">{formatDay(day)}</h2>
           <ul className="mt-2 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
-            {list.map((t) => {
-              const category = t.categoryId ? categoryById.get(t.categoryId) : undefined;
-              return (
-                <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: category?.color ?? "#6b7280" }}
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{t.description}</p>
-                      <p className="truncate text-xs text-black/50 dark:text-white/50">
-                        {category?.name ?? "Uncategorized"} · {accountNames.get(t.accountId)}
-                        {t.pending ? " · Pending" : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`shrink-0 tabular-nums ${t.amount > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
-                    {t.amount > 0 ? "+" : ""}
-                    {money.format(t.amount)}
-                  </span>
-                </li>
-              );
-            })}
+            {toRows(data, list, "category").map((row) => (
+              <TransactionRow key={row.id} t={row} categories={yourCategories} />
+            ))}
           </ul>
         </section>
       ))}

@@ -30,6 +30,9 @@ export type Transaction = {
   id: string;
   accountId: string;
   categoryId: string | null;
+  // The category you picked by hand, if any; categoryId may instead come
+  // from your bank's category.
+  chosenCategoryId?: string | null;
   postedOn: string; // YYYY-MM-DD
   description: string;
   merchant: string | null;

@@ -78,6 +78,8 @@ export function DashboardView({ data, today, budgetHref }: { data: BudgetData; t
         <Stat label="Net worth" value={wholeMoney.format(summary.netWorth)} note="all accounts" />
       </div>
 
+      {/* With a Budget page to open, the full list lives there. */}
+      {budgetHref ? null : (
       <Section title={summary.budgeted > 0 ? "Budgets" : "Spending by category"}>
         <ul className="space-y-3">
           {summary.byCategory.map(({ category, spent, budget }) => {
@@ -103,6 +105,7 @@ export function DashboardView({ data, today, budgetHref }: { data: BudgetData; t
           })}
         </ul>
       </Section>
+      )}
 
       <Section title="Recent transactions">
         <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
