@@ -13,6 +13,12 @@ const accounts: Account[] = [
   { id: "acc-card", name: "Rewards Card", institution: "Demo Card Co.", type: "credit", mask: "1937", currentBalance: 1142.63 },
 ];
 
+// Made-up accounts added by hand on the Banks page, like an Apple Card would
+// be, rather than linked through a bank.
+export const demoOwnAccounts: Account[] = [
+  { id: "acc-paycard", name: "Pay Card", institution: "Demo Pay", type: "credit", mask: "5502", currentBalance: 412.18 },
+];
+
 const categories: Category[] = [
   { id: "cat-paycheck", name: "Paycheck", groupName: "Income", kind: "income", color: "#059669", isExcluded: false },
   { id: "cat-rent", name: "Rent", groupName: "Home", kind: "expense", color: "#7c3aed", isExcluded: false },
@@ -154,5 +160,5 @@ export function demoData(today: string): BudgetData {
       reviewed: t.postedOn < reviewCutoff,
     }));
 
-  return { accounts, categories, transactions, budgets };
+  return { accounts: [...accounts, ...demoOwnAccounts], categories, transactions, budgets };
 }

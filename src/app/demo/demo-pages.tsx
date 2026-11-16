@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { AccountView } from "../accounts/account-view";
 import { IncomeView } from "../income/income-view";
 import { summarizeMonth } from "@/lib/budget/summary";
+import { OwnAccounts } from "../banks/own-accounts";
 import { AppHeader } from "../app-header";
 import { BudgetView } from "../budget/budget-view";
 import { CategoryBudgetView } from "../budget/category-view";
@@ -104,8 +105,20 @@ export function DemoAccount() {
 }
 
 export function DemoBanks() {
-  const { data } = useDemo();
-  const institutions = [...new Set(data.accounts.map((a) => a.institution ?? "Bank"))];
+  const { data, ownAccountIds, addAccount, updateAccount, deleteAccount } = useDemo();
+  const linked = data.accounts.filter((a) => !ownAccountIds.has(a.id));
+  const institutions = [...new Set(linked.map((a) => a.institution ?? "Bank"))];
+  const own = data.accounts
+    .filter((a) => ownAccountIds.has(a.id))
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      institution: a.institution,
+      type: a.type,
+      mask: a.mask,
+      balance: a.currentBalance,
+      transactionCount: data.transactions.filter((t) => t.accountId === a.id).length,
+    }));
   return (
     <>
       <AppHeader demo />
@@ -124,7 +137,7 @@ export function DemoBanks() {
             <p className="font-medium">{name}</p>
             <p className="text-xs text-black/50 dark:text-white/50">Made-up accounts</p>
             <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/10">
-              {data.accounts
+              {linked
                 .filter((a) => (a.institution ?? "Bank") === name)
                 .map((a) => (
                   <li key={a.id} className="flex justify-between gap-3 py-2">
@@ -139,6 +152,7 @@ export function DemoBanks() {
           </li>
         ))}
       </ul>
+      <OwnAccounts accounts={own} onAdd={addAccount} onUpdate={updateAccount} onDelete={deleteAccount} />
     </>
   );
 }
