@@ -28,7 +28,7 @@ async function Dashboard() {
 
   return (
     <>
-      <DashboardView data={data} today={today} budgetHref="/budget" yourCategories={month.yourCategories} />
+      <DashboardView data={data} today={today} yourCategories={month.yourCategories} />
       {hasCategories ? null : (
         <p className="mt-6 text-xs text-black/50 dark:text-white/50">
           Categories come from your banks for now. Your own categories and budgets come next.

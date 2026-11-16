@@ -1,6 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { AccountView } from "../accounts/account-view";
+import { IncomeView } from "../income/income-view";
 import { summarizeMonth } from "@/lib/budget/summary";
 import { AppHeader } from "../app-header";
 import { BudgetView } from "../budget/budget-view";
@@ -24,7 +26,7 @@ export function DemoDashboard() {
       <DashboardView
         data={data}
         today={today}
-        budgetHref="/demo/budget"
+        base="/demo"
         yourCategories={yourCategories}
         onMove={move}
         onReview={review}
@@ -64,6 +66,39 @@ export function DemoCategoryBudget() {
     <>
       <AppHeader demo active="budget" />
       <CategoryBudgetView data={data} today={today} categoryId={id} yourCategories={yourCategories} base="/demo" onMove={move} onReview={review} />
+    </>
+  );
+}
+
+export function DemoIncome() {
+  const { data, today, yourCategories, move, review } = useDemo();
+  return (
+    <>
+      <AppHeader demo active="dashboard" />
+      <IncomeView data={data} today={today} yourCategories={yourCategories} base="/demo" onMove={move} onReview={review} />
+    </>
+  );
+}
+
+export function DemoAccount() {
+  const { data, yourCategories, move, review } = useDemo();
+  const params = useParams<{ id: string }>();
+  const id = decodeURIComponent(params.id ?? "");
+  const transactions = data.transactions
+    .filter((t) => t.accountId === id)
+    .sort((a, b) => b.postedOn.localeCompare(a.postedOn) || a.id.localeCompare(b.id));
+  return (
+    <>
+      <AppHeader demo active="dashboard" />
+      <AccountView
+        data={data}
+        accountId={id}
+        transactions={transactions}
+        yourCategories={yourCategories}
+        base="/demo"
+        onMove={move}
+        onReview={review}
+      />
     </>
   );
 }
