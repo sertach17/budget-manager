@@ -67,6 +67,9 @@ export function AgentsView({
       </section>
 
       <h2 className="mt-8 font-semibold">Connected</h2>
+      <p className="mt-1 text-sm text-black/60 dark:text-white/60">
+        Signing out of this site doesn&apos;t disconnect them. To stop an agent, press Disconnect.
+      </p>
       {message ? <p className="mt-2 text-sm text-black/60 dark:text-white/60">{message}</p> : null}
       {agents.length ? (
         <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
