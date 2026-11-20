@@ -7,7 +7,7 @@ const PUBLIC_PATHS = ["/login", "/auth/confirm"];
 // Open to everyone, signed in or not, with no session check: the demo shows
 // only made-up data, the Venmo inbox endpoint checks each email's signature
 // itself, and the agent connection checks each agent's own token.
-const NO_SESSION_PATHS = ["/demo", "/api/venmo/inbound", "/api/mcp", "/api/cron", "/.well-known"];
+const NO_SESSION_PATHS = ["/demo", "/api/venmo/inbound", "/api/wallet", "/api/mcp", "/api/cron", "/.well-known"];
 
 // When an AI agent sends you to approve it but you aren't signed in yet, the
 // approval page is kept here so you land back on it after two-factor.
