@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { AppHeader } from "../app-header";
 import { requireTwoFactorUser } from "@/lib/auth";
@@ -11,6 +12,8 @@ import { SyncButton } from "./sync-button";
 import { clearGmailConfirmation } from "./venmo-actions";
 import { OwnAccounts } from "./own-accounts";
 import { CorrectBalanceForm, StartVenmoForm } from "./venmo-forms";
+import { startWalletFeed } from "./wallet-actions";
+import { CopyAddress, LinkAccountForm, SecretForm } from "./wallet-forms";
 
 export const metadata: Metadata = { title: "Banks · Budget Manager" };
 
@@ -240,6 +243,148 @@ async function Venmo() {
   );
 }
 
+const WALLET_OUTCOME: Record<string, string> = {
+  saved: "Saved",
+  ignored: "Nothing to save",
+  duplicate: "Already had it",
+  failed: "Failed",
+};
+
+const WALLET_EVENT: Record<string, string> = {
+  "transaction.created": "New transaction",
+  "transaction.updated": "Changed transaction",
+  "transaction.deleted": "Removed transaction",
+  "transaction.backfilled": "History",
+  "balance.updated": "Balance",
+  "account.added": "Account added",
+  "account.updated": "Account details",
+  "account.removed": "Account removed",
+};
+
+// The account a Wallet account most likely is: Apple Card to a card, Apple
+// Savings to savings, Apple Cash to cash, going by name and kind.
+function suggestAccount(
+  wallet: { name: string | null; account_type: string | null },
+  accounts: { id: string; name: string; type: string }[],
+) {
+  const name = (wallet.name ?? "").toLowerCase();
+  const kind = name.includes("saving") ? "savings" : name.includes("cash") ? "cash" : wallet.account_type === "liability" || name.includes("card") ? "credit" : null;
+  const word = kind === "credit" ? "card" : kind;
+  return (
+    accounts.find((a) => word !== null && a.name.toLowerCase().includes(word) && a.name.toLowerCase().includes("apple"))?.id ??
+    accounts.find((a) => kind !== null && a.type === kind && a.name.toLowerCase().includes("apple"))?.id ??
+    null
+  );
+}
+
+// Apple Card, Apple Cash and Apple Savings, posted by the WalletFeed app.
+async function AppleWallet() {
+  const { userId, supabase } = await requireTwoFactorUser();
+  const admin = createAdminClient();
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "budget.torrezhq.com";
+
+  const [{ data: feed }, { data: walletAccounts }, { data: events }, { data: own }] = await Promise.all([
+    admin.from("wallet_feeds").select("feed_id, secret_set_at, last_event_at").eq("user_id", userId).maybeSingle(),
+    admin
+      .from("wallet_accounts")
+      .select("wallet_account_id, name, institution, account_type, account_id, balance, removed_at")
+      .eq("user_id", userId)
+      .order("created_at"),
+    admin
+      .from("wallet_events")
+      .select("id, event_type, test, outcome, detail, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase.from("accounts").select("id, name, type").in("source", ["manual", "upload"]).order("created_at"),
+  ]);
+  const ownAccounts = own ?? [];
+
+  return (
+    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+      <p className="font-medium">Apple Wallet</p>
+      <p className="text-xs text-black/50 dark:text-white/50">
+        {feed?.last_event_at
+          ? `From the WalletFeed app on your iPhone · last update ${when(feed.last_event_at)}`
+          : "Apple Card, Apple Cash and Apple Savings, sent by the WalletFeed app on your iPhone"}
+      </p>
+
+      {!feed ? (
+        <form action={startWalletFeed} className="mt-3">
+          <button type="submit" className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white dark:bg-emerald-500">
+            Set up Apple Wallet
+          </button>
+        </form>
+      ) : (
+        <>
+          <p className="mt-3 text-sm">In WalletFeed, add a Webhook destination with this address:</p>
+          <CopyAddress address={`https://${host}/api/wallet/${feed.feed_id}`} />
+
+          {feed.secret_set_at ? (
+            <details className="mt-3 text-sm">
+              <summary className="cursor-pointer text-black/70 dark:text-white/70">
+                Signing secret saved {when(feed.secret_set_at)}. Replace it
+              </summary>
+              <SecretForm replacing />
+            </details>
+          ) : (
+            <>
+              <p className="mt-3 text-sm">
+                Then copy the destination&apos;s signing secret from WalletFeed and paste it here. Only posts signed with it are
+                trusted.
+              </p>
+              <SecretForm replacing={false} />
+            </>
+          )}
+
+          {walletAccounts?.length ? (
+            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/10">
+              {walletAccounts.map((w) => (
+                <li key={w.wallet_account_id} className="py-3">
+                  <div className="flex justify-between gap-3">
+                    <span>
+                      {w.name ?? "Wallet account"}
+                      {w.removed_at ? <span className="text-xs text-black/50 dark:text-white/50"> · removed in WalletFeed</span> : null}
+                    </span>
+                    <span className="tabular-nums">{w.balance === null ? "" : money.format(Number(w.balance))}</span>
+                  </div>
+                  <LinkAccountForm
+                    walletAccountId={w.wallet_account_id}
+                    current={w.account_id}
+                    suggested={w.account_id ? null : suggestAccount(w, ownAccounts)}
+                    options={ownAccounts.map((a) => ({ id: a.id, name: a.name }))}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : feed.secret_set_at ? (
+            <p className="mt-4 text-xs text-black/50 dark:text-white/50">
+              Your Wallet accounts show up here once WalletFeed sends them. Then pick which of your accounts each one fills.
+            </p>
+          ) : null}
+
+          {events?.length ? (
+            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/10">
+              {events.map((e) => (
+                <li key={e.id} className="flex justify-between gap-3 py-2">
+                  <span className="min-w-0">
+                    <span className="block truncate">
+                      {e.test ? "Test" : (WALLET_EVENT[e.event_type] ?? "Update")} · {when(e.created_at)}
+                    </span>
+                    {e.detail ? <span className="block text-xs text-black/50 dark:text-white/50">{e.detail}</span> : null}
+                  </span>
+                  <span className="shrink-0 text-xs text-black/60 dark:text-white/60">{WALLET_OUTCOME[e.outcome] ?? e.outcome}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function BanksPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
@@ -250,6 +395,9 @@ export default function BanksPage() {
       </Suspense>
       <Suspense fallback={null}>
         <YourAccounts />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AppleWallet />
       </Suspense>
       <Suspense fallback={null}>
         <Venmo />
