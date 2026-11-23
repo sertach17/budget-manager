@@ -40,14 +40,14 @@ export function GoalCard({ progress: p, href, compact = false }: { progress: Goa
         </p>
       </div>
       <div
-        className="mt-2 h-2 overflow-hidden rounded-full bg-black/10 dark:bg-white/15"
+        className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.07]"
         role="progressbar"
         aria-label={`${p.goal.name} progress`}
         aria-valuenow={Math.round(p.percent)}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className={`h-full rounded-full ${done ? "bg-emerald-500" : "bg-emerald-600"}`} style={{ width: `${p.percent}%` }} />
+        <div className="h-full origin-left animate-grow rounded-full bg-linear-to-r from-violet-500 via-sky-400 to-emerald-400" style={{ width: `${p.percent}%` }} />
       </div>
       <p className={`mt-2 text-xs ${p.pastDate ? "text-amber-700 dark:text-amber-300" : "text-black/60 dark:text-white/60"}`}>{plan}</p>
       {compact ? null : (
@@ -68,9 +68,9 @@ export function GoalCard({ progress: p, href, compact = false }: { progress: Goa
     </>
   );
 
-  const box = "block rounded-2xl border border-black/10 p-4 dark:border-white/15";
+  const box = "card block p-4";
   return href ? (
-    <Link href={href} className={`${box} hover:bg-black/[0.02] dark:hover:bg-white/[0.03]`}>
+    <Link href={href} className={`${box} pressable hover:border-white/15`}>
       {body}
     </Link>
   ) : (

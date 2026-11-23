@@ -73,7 +73,7 @@ async function Banks() {
           const itemAccounts = (accounts ?? []).filter((a) => a.plaid_item_id === item.id);
           const status = bankStatus(item);
           return (
-            <li key={item.id} className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+            <li key={item.id} className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium">{item.institution_name ?? "Bank"}</p>
@@ -89,7 +89,7 @@ async function Banks() {
                   <FixBankButton itemId={item.id} bank={item.institution_name ?? "your bank"} />
                 </div>
               ) : null}
-              <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/10">
+              <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/[0.07]">
                 {itemAccounts.map((a) => (
                   <li key={a.id} className="flex justify-between gap-3 py-2">
                     <span>
@@ -178,7 +178,7 @@ async function Venmo() {
   const confirmLink = fresh && feed?.gmail_confirmation_url ? gmailConfirmLink(feed.gmail_confirmation_url) : null;
 
   return (
-    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/10">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-medium">Venmo</p>
@@ -223,7 +223,7 @@ async function Venmo() {
           ) : null}
           <CorrectBalanceForm />
           {emails?.length ? (
-            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/10">
+            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/[0.07]">
               {emails.map((e) => (
                 <li key={e.id} className="flex justify-between gap-3 py-2">
                   <span className="min-w-0">
@@ -302,7 +302,7 @@ async function AppleWallet() {
   const ownAccounts = own ?? [];
 
   return (
-    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/10">
       <p className="font-medium">Apple Wallet</p>
       <p className="text-xs text-black/50 dark:text-white/50">
         {feed?.last_event_at
@@ -312,7 +312,7 @@ async function AppleWallet() {
 
       {!feed ? (
         <form action={startWalletFeed} className="mt-3">
-          <button type="submit" className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white dark:bg-emerald-500">
+          <button type="submit" className="btn-primary pressable rounded-xl px-3 py-2 text-sm font-medium">
             Set up Apple Wallet
           </button>
         </form>
@@ -339,7 +339,7 @@ async function AppleWallet() {
           )}
 
           {walletAccounts?.length ? (
-            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/10">
+            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/[0.07]">
               {walletAccounts.map((w) => (
                 <li key={w.wallet_account_id} className="py-3">
                   <div className="flex justify-between gap-3">
@@ -365,7 +365,7 @@ async function AppleWallet() {
           ) : null}
 
           {events?.length ? (
-            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/10">
+            <ul className="mt-4 divide-y divide-black/10 text-sm dark:divide-white/[0.07]">
               {events.map((e) => (
                 <li key={e.id} className="flex justify-between gap-3 py-2">
                   <span className="min-w-0">
@@ -387,7 +387,7 @@ async function AppleWallet() {
 
 export default function BanksPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <AppHeader />
       <h1 className="mt-6 text-xl font-semibold">Banks</h1>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>

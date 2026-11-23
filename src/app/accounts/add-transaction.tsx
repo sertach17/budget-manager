@@ -13,7 +13,7 @@ import { addTransaction, type AddResult } from "./actions";
 // upload handlers to keep everything in the page.
 
 const field = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900";
-const primary = "rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+const primary = "btn-primary pressable rounded-xl px-4 py-2 text-sm font-medium disabled:opacity-50";
 const plain = "rounded-lg border border-black/15 px-4 py-2 text-sm disabled:opacity-50 dark:border-white/20";
 
 export function AddTransaction({
@@ -75,7 +75,7 @@ export function AddTransaction({
   );
 
   return (
-    <section className="mt-4 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+    <section className="mt-4 rounded-2xl border border-black/10 p-4 dark:border-white/10">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-medium">Add to {account.name}</h2>
         <button

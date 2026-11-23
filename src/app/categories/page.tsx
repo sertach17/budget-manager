@@ -53,7 +53,7 @@ async function Categories() {
         <AddCategoryForm bankCategories={bankCategories} />
       </div>
       {items.length ? (
-        <ul className="mt-6 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+        <ul className="mt-6 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
           {items.map((item) => (
             <CategoryItem key={item.id} item={item} bankCategories={bankCategories} />
           ))}
@@ -67,7 +67,7 @@ async function Categories() {
 
 export default function CategoriesPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <AppHeader />
       <h1 className="mt-6 text-xl font-semibold">Categories</h1>
       <Suspense fallback={<p className="mt-6 text-sm">Loading…</p>}>

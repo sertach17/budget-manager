@@ -16,10 +16,12 @@ async function DemoShell({ children }: { children: React.ReactNode }) {
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-100 px-4 py-3 text-sm text-amber-900 dark:bg-amber-500/15 dark:text-amber-200">
-        <p>Demo with made-up accounts and spending. No real bank data is shown, and nothing you change is saved.</p>
-        <Link href="/login" className="font-medium underline">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.08] px-4 py-2.5 text-[13px] leading-snug text-amber-100/90">
+        <p>
+          <span className="font-semibold text-amber-300">Demo</span> with made-up accounts and spending. Nothing you change is saved.
+        </p>
+        <Link href="/login" className="shrink-0 font-medium text-amber-300 underline underline-offset-2">
           Leave demo
         </Link>
       </div>

@@ -37,7 +37,7 @@ type Preview = {
 };
 
 const input = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900";
-const primary = "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+const primary = "btn-primary pressable rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50";
 const plain = "rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/20";
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -270,7 +270,7 @@ export function StatementUpload({
 
   return (
     <div className="mt-6 grid gap-6">
-      <div className="grid gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+      <div className="grid gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/10">
         {fixedAccount ? null : (
           <label className="text-sm">
             <span className="mb-1 block text-xs text-black/60 dark:text-white/60">Account</span>
@@ -362,7 +362,7 @@ export function StatementUpload({
       </div>
 
       {preview ? (
-        <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+        <section className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
           <p className="font-medium">
             {fresh.length} new {fresh.length === 1 ? "transaction" : "transactions"}
             {alreadyCount ? `, ${alreadyCount} you already have` : ""}
@@ -418,7 +418,7 @@ export function StatementUpload({
 
           {fresh.length ? (
             <>
-              <ul className="mt-4 max-h-96 divide-y divide-black/10 overflow-y-auto text-sm dark:divide-white/10">
+              <ul className="mt-4 max-h-96 divide-y divide-black/10 overflow-y-auto text-sm dark:divide-white/[0.07]">
                 {fresh.slice(0, SHOWN).map((r, i) => (
                   <li key={i} className="flex items-center justify-between gap-3 py-2">
                     <div className="min-w-0">

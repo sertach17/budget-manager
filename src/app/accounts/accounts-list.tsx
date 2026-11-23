@@ -8,7 +8,7 @@ const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD
 
 export function AccountsList({ accounts, base = "" }: { accounts: Account[]; base?: string }) {
   return (
-    <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+    <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
       {accounts.map((account) => (
         <li key={account.id}>
           <Link

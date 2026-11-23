@@ -11,7 +11,7 @@ const links = [
   { href: "/account/password", label: "Change password" },
 ];
 
-const itemClass = "block w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10";
+const itemClass = "block w-full px-4 py-3 text-left text-[15px] hover:bg-white/[0.06]";
 
 const demoLinks = [
   { href: "/demo/banks", label: "Banks" },
@@ -50,7 +50,7 @@ export function SettingsMenu({ demo = false }: { demo?: boolean }) {
         aria-expanded={open}
         aria-controls="settings-menu"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/15 dark:border-white/20"
+        className="pressable flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/[0.04] text-white/80 hover:bg-white/[0.08]"
       >
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
           <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -59,7 +59,7 @@ export function SettingsMenu({ demo = false }: { demo?: boolean }) {
       {open && (
         <div
           id="settings-menu"
-          className="absolute right-0 z-10 mt-2 w-56 overflow-hidden rounded-xl border border-black/10 bg-white py-1 shadow-lg dark:border-white/15 dark:bg-neutral-900"
+          className="absolute right-0 z-50 mt-2 w-60 origin-top-right animate-rise overflow-hidden rounded-2xl border border-line bg-[#171b2b]/95 py-1 shadow-2xl shadow-black/60 backdrop-blur-xl"
         >
           <p className="px-4 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-black/50 dark:text-white/50">
             Settings
@@ -74,7 +74,7 @@ export function SettingsMenu({ demo = false }: { demo?: boolean }) {
               Change password (off in the demo)
             </p>
           ) : null}
-          <div className="my-1 border-t border-black/10 dark:border-white/15" />
+          <div className="my-1 border-t border-black/10 dark:border-white/10" />
           {demo ? (
             <Link href="/login" className={`${itemClass} text-red-600 dark:text-red-400`}>
               Leave demo

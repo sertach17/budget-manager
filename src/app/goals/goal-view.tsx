@@ -81,7 +81,7 @@ export function GoalView({
 
       <div className="mt-4">
         {editing ? (
-          <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+          <section className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
             <GoalForm
               goal={goal}
               accounts={data.accounts.filter(canHoldGoal)}
@@ -136,7 +136,7 @@ export function GoalView({
           {wholeBalance ? ` Ones in ${progress.account?.name} are already in its balance, so they aren't added again.` : ""}
         </p>
         {tagged.length ? (
-          <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+          <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
             {toRows(data, tagged, "both").map((row) => (
               <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} onReview={onReview} />
             ))}

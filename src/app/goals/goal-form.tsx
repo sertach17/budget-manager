@@ -9,7 +9,7 @@ import type { GoalResult } from "./actions";
 // follows, counting all of its balance or just part of it.
 
 const field = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900";
-const primary = "rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+const primary = "btn-primary pressable rounded-xl px-4 py-2 text-sm font-medium disabled:opacity-50";
 const plain = "rounded-lg border border-black/15 px-4 py-2 text-sm disabled:opacity-50 dark:border-white/20";
 const label = "block text-xs font-medium text-black/60 dark:text-white/60";
 
