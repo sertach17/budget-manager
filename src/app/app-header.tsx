@@ -32,7 +32,7 @@ export function AppHeader({ active, demo = false }: { active?: TabId; demo?: boo
   const base = demo ? "/demo" : "";
   const hrefFor = (href: string) => (href === "/" ? base || "/" : `${base}${href}`);
   return (
-    <header className="animate-fade">
+    <header className="relative z-30">
       <div className="flex items-center justify-between gap-4">
         <Link href={base || "/"} className="pressable flex items-center gap-2.5">
           <span
