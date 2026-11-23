@@ -196,7 +196,7 @@ export function DemoBanks() {
       <button
         type="button"
         disabled
-        className="mt-6 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white opacity-50"
+        className="btn-primary mt-6 rounded-xl px-4 py-2 text-sm font-medium opacity-50"
       >
         Connect a bank
       </button>
@@ -205,7 +205,7 @@ export function DemoBanks() {
       </p>
       <ul className="mt-8 space-y-4">
         {institutions.map((name) => (
-          <li key={name} className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+          <li key={name} className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-medium">{name}</p>
@@ -219,7 +219,7 @@ export function DemoBanks() {
                 Sync now
               </button>
             </div>
-            <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/10">
+            <ul className="mt-3 divide-y divide-black/10 text-sm dark:divide-white/[0.07]">
               {linked
                 .filter((a) => (a.institution ?? "Bank") === name)
                 .map((a) => (
@@ -253,7 +253,7 @@ export function DemoCategories() {
         {items.length} categories · {wholeMoney.format(total)} budgeted a month
       </p>
       <p className="mt-2 text-xs text-black/50 dark:text-white/50">Adding, editing and deleting categories is off in the demo.</p>
-      <ul className="mt-6 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+      <ul className="mt-6 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
         {items.map((c) => {
           const budget = budgetBy.get(c.id);
           return (

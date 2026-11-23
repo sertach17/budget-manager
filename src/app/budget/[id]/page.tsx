@@ -24,7 +24,7 @@ async function CategoryBudget({ params }: { params: Promise<{ id: string }> }) {
 
 export default function CategoryBudgetPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <AppHeader active="budget" />
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>
         <CategoryBudget params={params} />

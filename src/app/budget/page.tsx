@@ -17,7 +17,7 @@ async function Budget() {
 
 export default function BudgetPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <AppHeader active="budget" />
       <h1 className="sr-only">Budget</h1>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>

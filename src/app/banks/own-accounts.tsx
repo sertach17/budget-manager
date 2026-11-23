@@ -27,7 +27,7 @@ type Handlers = {
 };
 
 const input = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20 dark:bg-neutral-900";
-const primary = "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+const primary = "btn-primary pressable rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50";
 const plain = "rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/20";
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -157,7 +157,7 @@ function AccountItem({ account, base, onUpdate, onDelete }: { account: OwnAccoun
         </div>
       </div>
       {mode === "edit" ? (
-        <div className="mt-3 grid gap-3 rounded-xl border border-black/10 p-3 dark:border-white/15">
+        <div className="mt-3 grid gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10">
           <Fields value={value} onChange={setValue} />
           <div className="flex items-center gap-3">
             <button type="button" onClick={save} disabled={pending} className={primary}>
@@ -219,13 +219,13 @@ export function OwnAccounts({
     });
 
   return (
-    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+    <section className="mt-10 rounded-2xl border border-black/10 p-4 dark:border-white/10">
       <p className="font-medium">Your own accounts</p>
       <p className="text-xs text-black/50 dark:text-white/50">
         For accounts no bank link reaches, like Apple Card or Apple Cash. Tap Upload to add a statement file to one.
       </p>
       {accounts.length ? (
-        <ul className="mt-3 divide-y divide-black/10 dark:divide-white/10">
+        <ul className="mt-3 divide-y divide-black/10 dark:divide-white/[0.07]">
           {accounts.map((a) => (
             <AccountItem key={a.id} account={a} base={base} onUpdate={onUpdate} onDelete={onDelete} />
           ))}
@@ -237,7 +237,7 @@ export function OwnAccounts({
             e.preventDefault();
             add();
           }}
-          className="mt-4 grid gap-3 rounded-xl border border-black/10 p-3 dark:border-white/15"
+          className="mt-4 grid gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10"
         >
           <Fields value={value} onChange={setValue} />
           <div className="flex items-center gap-3">

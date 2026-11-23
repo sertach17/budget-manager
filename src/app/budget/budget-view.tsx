@@ -14,14 +14,17 @@ function formatMonth(month: string) {
 export function BudgetView({ summary, base = "" }: { summary: MonthSummary; base?: string }) {
   return (
     <>
-      <p className="mt-6 text-sm text-black/60 dark:text-white/60">
-        {formatMonth(summary.month)} · {summary.daysLeft} {summary.daysLeft === 1 ? "day" : "days"} left
-      </p>
-      <div className="mt-3">
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-white/70">{formatMonth(summary.month)}</p>
+        <span className="rounded-full border border-line bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-white/60">
+          {summary.daysLeft} {summary.daysLeft === 1 ? "day" : "days"} left
+        </span>
+      </div>
+      <div className="mt-3 animate-rise">
         <BudgetCard summary={summary} />
       </div>
 
-      <ul className="mt-6 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+      <ul className="card stagger mt-4 divide-y divide-line overflow-hidden">
         {summary.byCategory.map(({ category, spent, budget }) => {
           const share = budget ? Math.min(spent / budget, 1) : 1;
           const over = budget !== null && spent > budget;
@@ -30,19 +33,27 @@ export function BudgetView({ summary, base = "" }: { summary: MonthSummary; base
             <li key={category.id}>
               <Link
                 href={`${base}/budget/${encodeURIComponent(category.id)}`}
-                className="block px-4 py-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                className="block px-4 py-3.5 transition-colors hover:bg-white/[0.03] active:bg-white/[0.06]"
               >
                 <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="font-medium">{category.name.trim()}</span>
+                  <span className="flex min-w-0 items-center gap-2 font-medium">
+                    <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: category.color }} />
+                    <span className="truncate">{category.name.trim()}</span>
+                  </span>
                   <span className={`tabular-nums ${over ? "text-red-600 dark:text-red-400" : "text-black/60 dark:text-white/60"}`}>
                     {wholeMoney.format(spent)}
                     {budget !== null ? ` of ${wholeMoney.format(budget)}` : ""}
                   </span>
                 </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]">
                   <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.round(share * 100)}%`, backgroundColor: over ? "#dc2626" : category.color }}
+                    className="h-full origin-left animate-grow rounded-full"
+                    style={{
+                      width: `${Math.round(share * 100)}%`,
+                      backgroundImage: over
+                        ? "linear-gradient(90deg, #fb7185, #f43f5e)"
+                        : `linear-gradient(90deg, color-mix(in srgb, ${category.color} 70%, white), ${category.color})`,
+                    }}
                   />
                 </div>
                 {left !== null ? (

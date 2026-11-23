@@ -15,7 +15,7 @@ export type CategoryItemData = {
 export type BankCategory = { code: string; label: string };
 
 const input = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20";
-const primary = "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+const primary = "btn-primary pressable rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50";
 const plain = "rounded-lg border border-black/15 px-3 py-2 text-sm disabled:opacity-50 dark:border-white/20";
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const kindLabel: Record<string, string> = { expense: "Spending", income: "Income", transfer: "Transfer (not counted)" };
@@ -92,7 +92,7 @@ export function AddCategoryForm({ bankCategories }: { bankCategories: BankCatego
     );
   }
   return (
-    <form action={action} className="grid gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/15"
+    <form action={action} className="grid gap-3 rounded-2xl border border-black/10 p-4 dark:border-white/10"
     >
       <CategoryFields bankCategories={bankCategories} />
       <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ export function CategoryItem({ item, bankCategories }: { item: CategoryItemData;
       ) : null}
 
       {mode === "edit" ? (
-        <form action={action} className="mt-3 grid gap-3 rounded-xl border border-black/10 p-3 dark:border-white/15">
+        <form action={action} className="mt-3 grid gap-3 rounded-xl border border-black/10 p-3 dark:border-white/10">
           <CategoryFields item={item} bankCategories={bankCategories} />
           <div className="flex items-center gap-3">
             <button type="submit" disabled={pending} className={primary}>

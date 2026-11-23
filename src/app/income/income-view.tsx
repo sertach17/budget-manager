@@ -45,7 +45,7 @@ export function IncomeView({
       <p className="mt-1 text-xs text-black/50 dark:text-white/50">Tap a transaction to move it or mark it reviewed.</p>
 
       {rows.length ? (
-        <ul className="mt-4 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+        <ul className="mt-4 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
           {rows.map((row) => (
             <TransactionRow key={row.id} t={row} categories={yourCategories} onMove={onMove} onReview={onReview} />
           ))}

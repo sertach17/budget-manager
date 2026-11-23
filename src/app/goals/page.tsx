@@ -16,7 +16,7 @@ async function Goals() {
 
 export default function GoalsPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <AppHeader active="goals" />
       <h1 className="sr-only">Goals</h1>
       <Suspense fallback={<p className="mt-8 text-sm">Loading…</p>}>

@@ -46,7 +46,7 @@ async function Agents() {
 
 export default function AgentsPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <AppHeader />
       <h1 className="mt-6 text-xl font-semibold">Connected agents</h1>
       <p className="mt-2 text-sm text-black/60 dark:text-white/60">

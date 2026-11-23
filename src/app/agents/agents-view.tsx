@@ -42,7 +42,7 @@ export function AgentsView({
 
   return (
     <>
-      <section className="mt-6 rounded-2xl border border-black/10 p-4 dark:border-white/15">
+      <section className="mt-6 rounded-2xl border border-black/10 p-4 dark:border-white/10">
         <h2 className="font-semibold">Connect an agent</h2>
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">
           Add this address as a custom connector (MCP server) in Claude, ChatGPT or another AI agent. It asks you to sign in
@@ -72,7 +72,7 @@ export function AgentsView({
       </p>
       {message ? <p className="mt-2 text-sm text-black/60 dark:text-white/60">{message}</p> : null}
       {agents.length ? (
-        <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+        <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
           {agents.map((a) => (
             <li key={a.clientId} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
               <div className="min-w-0">
@@ -106,7 +106,7 @@ export function AgentsView({
 
       <h2 className="mt-8 font-semibold">What agents changed</h2>
       {changes.length ? (
-        <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+        <ul className="mt-3 divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/[0.07] dark:border-white/10">
           {changes.map((c) => (
             <li key={c.id} className="px-4 py-3 text-sm">
               <p>{c.summary}</p>

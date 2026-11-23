@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActiveTabInView } from "./active-tab";
 import { SettingsMenu } from "./settings-menu";
 
 const tabs = [
@@ -31,15 +32,25 @@ export function AppHeader({ active, demo = false }: { active?: TabId; demo?: boo
   const base = demo ? "/demo" : "";
   const hrefFor = (href: string) => (href === "/" ? base || "/" : `${base}${href}`);
   return (
-    <header>
+    <header className="animate-fade">
       <div className="flex items-center justify-between gap-4">
-        <Link href={base || "/"} className="text-2xl font-semibold">
-          Budget Manager
+        <Link href={base || "/"} className="pressable flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 via-sky-500 to-emerald-400 shadow-lg shadow-violet-500/25"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d={icons.budget} />
+            </svg>
+          </span>
+          <span className="text-xl font-semibold tracking-tight">
+            Budget <span className="text-white/45">Manager</span>
+          </span>
         </Link>
         <SettingsMenu demo={demo} />
       </div>
-      <nav aria-label="Pages" className="-mx-4 mt-5 overflow-x-auto px-4 standalone:hidden">
-        <ul className="flex w-max gap-2">
+      <nav aria-label="Pages" className="-mx-4 mt-5 overflow-x-auto px-4 [scrollbar-width:none] standalone:hidden">
+        <ul className="flex w-max gap-1 rounded-full border border-line bg-white/[0.03] p-1">
           {tabs.map((tab) => {
             const current = tab.id === active;
             return (
@@ -47,10 +58,8 @@ export function AppHeader({ active, demo = false }: { active?: TabId; demo?: boo
                 <Link
                   href={hrefFor(tab.href)}
                   aria-current={current ? "page" : undefined}
-                  className={`block rounded-full px-4 py-1.5 text-sm font-medium ${
-                    current
-                      ? "bg-emerald-600 text-white"
-                      : "text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
+                  className={`pressable block rounded-full px-4 py-1.5 text-sm font-medium ${
+                    current ? "btn-primary" : "text-white/60 hover:bg-white/[0.06] hover:text-white"
                   }`}
                 >
                   {tab.label}
@@ -59,10 +68,11 @@ export function AppHeader({ active, demo = false }: { active?: TabId; demo?: boo
             );
           })}
         </ul>
+        <ActiveTabInView />
       </nav>
       <nav
         aria-label="Pages"
-        className="fixed inset-x-0 bottom-0 z-40 hidden border-t border-black/10 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur standalone:block dark:border-white/15"
+        className="fixed inset-x-0 bottom-0 z-40 hidden border-t border-line bg-[#0e111b]/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl standalone:block"
       >
         <ul className="mx-auto flex max-w-xl">
           {tabs.map((tab) => {
@@ -72,14 +82,14 @@ export function AppHeader({ active, demo = false }: { active?: TabId; demo?: boo
                 <Link
                   href={hrefFor(tab.href)}
                   aria-current={current ? "page" : undefined}
-                  className={`flex flex-col items-center gap-1 pb-1.5 pt-2 text-[10px] font-medium ${
-                    current ? "text-emerald-600" : "text-black/55 dark:text-white/55"
+                  className={`pressable flex flex-col items-center gap-1 pb-1.5 pt-2 text-[10px] font-medium ${
+                    current ? "text-emerald-400" : "text-white/50"
                   }`}
                 >
                   <svg
                     viewBox="0 0 24 24"
                     aria-hidden="true"
-                    className="h-6 w-6"
+                    className={`h-6 w-6 transition-transform duration-200 ${current ? "-translate-y-0.5" : ""}`}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={current ? 2.2 : 1.7}

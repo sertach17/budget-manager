@@ -23,7 +23,10 @@ export function ReviewList({
 
   if (!rows.length) {
     return (
-      <p className="rounded-2xl border border-dashed border-black/15 px-4 py-3 text-sm text-black/60 dark:border-white/20 dark:text-white/60">
+      <p className="flex items-center gap-2 rounded-2xl border border-dashed border-white/15 px-4 py-3 text-sm text-white/60">
+        <span aria-hidden="true" className="text-emerald-400">
+          ✓
+        </span>
         You&apos;re all caught up.
       </p>
     );
@@ -42,18 +45,18 @@ export function ReviewList({
 
   return (
     <div>
-      <ul className="divide-y divide-black/10 rounded-2xl border border-black/10 dark:divide-white/10 dark:border-white/15">
+      <ul className="card divide-y divide-line overflow-hidden">
         {rows.map((row) => (
           <TransactionRow key={row.id} t={row} categories={categories} onMove={onMove} onReview={onReview} />
         ))}
       </ul>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-xs text-black/50 dark:text-white/50">Tap one to move it or mark it reviewed.</p>
+        <p className="text-xs text-white/45">Tap one to change or review it.</p>
         <button
           type="button"
           onClick={reviewAll}
           disabled={saving}
-          className="shrink-0 rounded-lg border border-black/15 px-3 py-1.5 text-sm dark:border-white/20 disabled:opacity-50"
+          className="pressable shrink-0 rounded-full border border-violet-400/40 bg-violet-500/10 px-3.5 py-1.5 text-sm font-medium text-violet-200 disabled:opacity-50"
         >
           {saving ? "Saving…" : rows.length === 1 ? "Mark reviewed" : `Mark all ${rows.length} reviewed`}
         </button>

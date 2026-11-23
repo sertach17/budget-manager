@@ -12,7 +12,7 @@ import { GoalForm } from "./goal-form";
 // Shared by the signed-in site and the demo, which passes `onCreate` to keep
 // new goals in the page.
 
-const primary = "rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+const primary = "btn-primary pressable rounded-xl px-4 py-2 text-sm font-medium disabled:opacity-50";
 
 export function GoalsView({
   data,
@@ -33,7 +33,7 @@ export function GoalsView({
   return (
     <div className="mt-6">
       {adding ? (
-        <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+        <section className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
           <h2 className="mb-4 font-medium">New goal</h2>
           <GoalForm
             accounts={accounts}

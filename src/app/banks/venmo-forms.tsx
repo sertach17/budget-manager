@@ -6,7 +6,7 @@ import { correctVenmoBalance, startVenmo, type VenmoFormState } from "./venmo-ac
 const input =
   "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20";
 const button =
-  "rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-emerald-500";
+  "btn-primary pressable rounded-xl px-3 py-2 text-sm font-medium disabled:opacity-50";
 
 function Message({ state }: { state: VenmoFormState }) {
   if (!state) return null;
