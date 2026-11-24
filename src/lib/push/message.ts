@@ -37,14 +37,15 @@ export function readSubscription(value: unknown): PushSubscriptionInput | null {
   return { endpoint: v.endpoint, keys: { p256dh, auth } };
 }
 
-export type AlertPayload = { title: string; body: string; url: string; tag: string };
+// badge is the number for the Budget icon on the home screen.
+export type AlertPayload = { title: string; body: string; url: string; tag: string; badge?: number };
 
 // What the phone shows. Only a count: no amounts or shop names, since the
 // alert can show on a locked screen.
 export function reviewAlert(newCount: number, totalToReview: number): AlertPayload {
   const what = newCount === 1 ? "1 new transaction" : `${newCount} new transactions`;
   const waiting = totalToReview > newCount ? ` ${totalToReview} are waiting in all.` : "";
-  return { title: "Budget", body: `${what} to review.${waiting}`, url: "/", tag: "review" };
+  return { title: "Budget", body: `${what} to review.${waiting}`, url: "/", tag: "review", badge: Math.max(totalToReview, newCount) };
 }
 
 export function testAlert(): AlertPayload {

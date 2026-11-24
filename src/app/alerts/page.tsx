@@ -11,7 +11,7 @@ function AlertsIntro() {
       <h1 className="mt-6 text-xl font-semibold">Phone alerts</h1>
       <p className="mt-2 text-sm text-black/60 dark:text-white/60">
         A notification when new transactions land in Pending to review: after the morning bank sync, and as Apple Wallet and Venmo
-        send them. It shows only how many, never amounts or where you spent.
+        send them. It shows only how many, never amounts or where you spent, and the Budget icon shows how many are waiting.
       </p>
     </>
   );

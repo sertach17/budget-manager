@@ -14,14 +14,24 @@ self.addEventListener("push", (event) => {
   const title = typeof data.title === "string" ? data.title : "Budget";
   const body = typeof data.body === "string" ? data.body : "New transactions to review.";
   const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/";
+  // The number on the Budget icon: how many transactions wait for review.
+  const count = Number.isInteger(data.badge) && data.badge >= 0 ? data.badge : null;
+  const nav = self.navigator;
+  const setBadge =
+    count === null || !nav.setAppBadge
+      ? Promise.resolve()
+      : (count > 0 ? nav.setAppBadge(count) : nav.clearAppBadge()).catch(() => {});
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      tag: typeof data.tag === "string" ? data.tag : "review",
-      data: { url },
-    }),
+    Promise.all([
+      self.registration.showNotification(title, {
+        body,
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: typeof data.tag === "string" ? data.tag : "review",
+        data: { url },
+      }),
+      setBadge,
+    ]),
   );
 });
 
