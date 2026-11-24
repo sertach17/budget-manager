@@ -39,6 +39,7 @@ pasted into either editor as is.
 | `20261115030000_venmo_email_feed.sql` | Venmo from forwarded emails: the feed settings, a log of each email's outcome, and a function that adds one Venmo transaction and moves the balance together (see `cloudflare/venmo-email-worker/README.md`) |
 | `20261115040000_gmail_confirm_link.sql` | Keeps Gmail's forwarding confirm link (Google's own hosts only) for emails that carry a link instead of a code |
 | `20261115050000_category_bank_matches.sql` | Lists which bank (Plaid) categories sort into each of your categories |
+| `20261124000000_push_alerts.sql` | Phone alerts: the site's push key pair (made by the server, nothing to paste), each device that turned alerts on, and up to when you were last told about new transactions. All server-only |
 
 ## Conventions
 
