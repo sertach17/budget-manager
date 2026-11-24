@@ -3,6 +3,7 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AgentsView, type AgentChange, type ConnectedAgent } from "../agents/agents-view";
+import { AlertsView } from "../alerts/alerts-view";
 import { AccountView } from "../accounts/account-view";
 import { AccountsFooter, AccountsList } from "../accounts/accounts-list";
 import { IncomeView } from "../income/income-view";
@@ -348,6 +349,21 @@ export function DemoAgents() {
           return { ok: true, message: "Disconnected." };
         }}
       />
+    </>
+  );
+}
+
+export function DemoAlerts() {
+  return (
+    <>
+      <AppHeader demo />
+      <h1 className="mt-6 text-xl font-semibold">Phone alerts</h1>
+      <p className="mt-2 text-sm text-black/60 dark:text-white/60">
+        A notification when new transactions land in Pending to review: after the morning bank sync, and as Apple Wallet and Venmo
+        send them. It shows only how many, never amounts or where you spent.
+      </p>
+      <p className="mt-2 text-xs text-black/50 dark:text-white/50">In the demo, the alert is a made-up sample and nothing is saved.</p>
+      <AlertsView demo />
     </>
   );
 }

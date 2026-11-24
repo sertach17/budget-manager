@@ -6,6 +6,7 @@ import { signOut } from "./actions";
 
 const links = [
   { href: "/banks", label: "Banks" },
+  { href: "/alerts", label: "Phone alerts" },
   { href: "/categories", label: "Categories" },
   { href: "/agents", label: "Connected agents" },
   { href: "/account/password", label: "Change password" },
@@ -15,6 +16,7 @@ const itemClass = "block w-full px-4 py-3 text-left text-[15px] hover:bg-white/[
 
 const demoLinks = [
   { href: "/demo/banks", label: "Banks" },
+  { href: "/demo/alerts", label: "Phone alerts" },
   { href: "/demo/categories", label: "Categories" },
   { href: "/demo/agents", label: "Connected agents" },
 ];

@@ -6,8 +6,9 @@ import { supabaseEnv } from "./env";
 const PUBLIC_PATHS = ["/login", "/auth/confirm"];
 // Open to everyone, signed in or not, with no session check: the demo shows
 // only made-up data, the Venmo inbox endpoint checks each email's signature
-// itself, and the agent connection checks each agent's own token.
-const NO_SESSION_PATHS = ["/demo", "/api/venmo/inbound", "/api/wallet", "/api/mcp", "/api/cron", "/.well-known"];
+// itself, and the agent connection checks each agent's own token. /sw.js is
+// the service worker that shows phone alerts; it holds no data.
+const NO_SESSION_PATHS = ["/sw.js", "/demo", "/api/venmo/inbound", "/api/wallet", "/api/mcp", "/api/cron", "/.well-known"];
 
 // When an AI agent sends you to approve it but you aren't signed in yet, the
 // approval page is kept here so you land back on it after two-factor.

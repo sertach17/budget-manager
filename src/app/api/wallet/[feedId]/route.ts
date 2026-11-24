@@ -1,3 +1,4 @@
+import { notifyNewToReview } from "@/lib/push/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   deleteWalletTransaction,
@@ -136,6 +137,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ fee
     }
     await log("saved", envelope.type, detail);
     await admin.from("wallet_feeds").update({ last_event_at: new Date().toISOString() }).eq("user_id", feed.user_id);
+    // A phone alert if this brought in something to review.
+    if (event.kind === "transactions") await notifyNewToReview(admin, [feed.user_id]);
     return reply(200, "ok");
   } catch (e) {
     console.error("Wallet post failed", { type: envelope.type, message: e instanceof Error ? e.message : String(e) });

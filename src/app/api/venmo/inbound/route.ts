@@ -1,4 +1,5 @@
 import PostalMime from "postal-mime";
+import { notifyNewToReview } from "@/lib/push/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseGmailConfirmation, parseVenmoEmail } from "@/lib/venmo/parse";
 import { verifiedSenderDomain } from "@/lib/venmo/verify";
@@ -150,5 +151,7 @@ export async function POST(request: Request) {
   }
 
   await log(transactionId ? "added" : "duplicate", null, (transactionId as string | null) ?? null);
+  // A phone alert for the new Venmo transaction, if alerts are on.
+  if (transactionId) await notifyNewToReview(admin, [feed.user_id]);
   return reply(200, "ok");
 }

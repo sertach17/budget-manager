@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { plaidEnv } from "./client";
+import { notifyNewToReview } from "@/lib/push/send";
 import { syncPlaidItem } from "./sync";
 
 export type BankSyncResult = { bank: string; ok: boolean; added: number; removed: number; code?: string };
@@ -19,13 +20,17 @@ export async function syncBanks(admin: SupabaseClient, userId?: string): Promise
   if (error) throw new Error(`Reading bank connections failed: ${error.message}`);
 
   const results: BankSyncResult[] = [];
+  const gotNew = new Set<string>();
   for (const item of items ?? []) {
     const result = await syncPlaidItem(admin, item);
+    if (result.ok && result.added > 0) gotNew.add(item.user_id);
     results.push(
       result.ok
         ? { bank: item.institution_name ?? "Bank", ok: true, added: result.added, removed: result.removed }
         : { bank: item.institution_name ?? "Bank", ok: false, added: 0, removed: 0, code: result.code },
     );
   }
+  // A phone alert for anyone who turned them on and got something new.
+  await notifyNewToReview(admin, [...gotNew]);
   return results;
 }
