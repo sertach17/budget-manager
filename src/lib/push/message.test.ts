@@ -32,6 +32,7 @@ test("the alert gives only counts", () => {
   assert.equal(reviewAlert(3, 3).body, "3 new transactions to review.");
   assert.equal(reviewAlert(2, 7).body, "2 new transactions to review. 7 are waiting in all.");
   assert.equal(reviewAlert(1, 1).url, "/");
+  assert.equal(reviewAlert(2, 7).badge, 7);
 });
 
 test("devices get a plain label", () => {

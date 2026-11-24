@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { loadMonth } from "@/lib/budget/load";
 import { DashboardView } from "./dashboard-view";
+import { AppBadge } from "./app-badge";
 import { AppHeader } from "./app-header";
 import { BankNotice } from "./bank-notice";
 import { GoalsProvider } from "./goal-picker";
@@ -30,6 +31,7 @@ async function Dashboard() {
 
   return (
     <GoalsProvider goals={month.yourGoals}>
+      <AppBadge count={data.transactions.filter((t) => t.reviewed === false).length} />
       <DashboardView data={data} today={today} yourCategories={month.yourCategories} />
       {hasCategories ? null : (
         <p className="mt-6 text-xs text-black/50 dark:text-white/50">
