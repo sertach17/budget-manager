@@ -2,10 +2,11 @@
 
 import type { PickCategory } from "@/lib/budget/types";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { markReviewed, setTransactionCategory } from "./transactions/actions";
+import { markReviewed, markToReview, setTransactionCategory } from "./transactions/actions";
 import { setTransactionGoal } from "./goals/actions";
 import { CategoryOptions } from "./category-options";
 import { useGoalPicker } from "./goal-picker";
+import { useUnreview } from "./review-undo";
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -63,7 +64,8 @@ function Tags({ t }: { t: RowTransaction }) {
 
 // One transaction. Tap it to open a panel where you move it to another of
 // your categories, tag it to one of your goals (it keeps its category), and
-// save and mark it reviewed in one tap. On a phone the panel slides up from the bottom of the
+// save and mark it reviewed in one tap. A reviewed one can be moved back to
+// "Pending to review". On a phone the panel slides up from the bottom of the
 // screen, with each choice full width and labelled.
 // `onMove` and `onReview` replace saving to the database;
 // the demo uses them to keep changes in the page only.
@@ -85,6 +87,8 @@ export function TransactionRow({
   const [message, setMessage] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [savingReview, setSavingReview] = useState(false);
+  const [savingBack, setSavingBack] = useState(false);
+  const { onUnreview } = useUnreview();
   const sheet = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -102,6 +106,7 @@ export function TransactionRow({
   const save = (andReview: boolean) =>
     startSaving(async () => {
       setSavingReview(andReview);
+      setSavingBack(false);
       const moved = choice !== (t.categoryId ?? "");
       const tagged = goalChoice !== (t.goalId ?? "");
       const review = andReview && !t.reviewed;
@@ -124,6 +129,35 @@ export function TransactionRow({
         const result = await markReviewed([t.id]);
         if (!result.ok) return setMessage(result.message ?? "Saved, but couldn't mark it reviewed.");
       }
+      setOpen(false);
+      setMessage(null);
+    });
+
+  // Save any category or goal change and put it back under "Pending to
+  // review", with its To review tag.
+  const moveBack = () =>
+    startSaving(async () => {
+      setSavingReview(false);
+      setSavingBack(true);
+      const moved = choice !== (t.categoryId ?? "");
+      const tagged = goalChoice !== (t.goalId ?? "");
+      if (onMove || onSetGoal || onReview || onUnreview) {
+        if (moved) onMove?.(t.id, choice);
+        if (tagged) onSetGoal?.(t.id, goalChoice);
+        onUnreview?.([t.id]);
+        setOpen(false);
+        return;
+      }
+      if (moved) {
+        const result = await setTransactionCategory(t.id, choice);
+        if (!result.ok) return setMessage(result.message ?? "Couldn't move it.");
+      }
+      if (tagged) {
+        const result = await setTransactionGoal(t.id, goalChoice);
+        if (!result.ok) return setMessage(result.message);
+      }
+      const result = await markToReview([t.id]);
+      if (!result.ok) return setMessage(result.message ?? "Saved, but couldn't move it back to To review.");
       setOpen(false);
       setMessage(null);
     });
@@ -235,9 +269,18 @@ export function TransactionRow({
                 disabled={saving}
                 className="btn-primary pressable rounded-2xl px-4 py-3 text-base font-semibold disabled:opacity-50"
               >
-                {saving && (savingReview || t.reviewed) ? "Saving…" : t.reviewed ? "Save" : "Save and mark reviewed"}
+                {saving && !savingBack && (savingReview || t.reviewed) ? "Saving…" : t.reviewed ? "Save" : "Save and mark reviewed"}
               </button>
-              {t.reviewed ? null : (
+              {t.reviewed ? (
+                <button
+                  type="button"
+                  onClick={moveBack}
+                  disabled={saving}
+                  className="pressable rounded-2xl border border-violet-400/40 bg-violet-500/10 px-4 py-3 text-base font-medium text-violet-200 disabled:opacity-50"
+                >
+                  {saving && savingBack ? "Moving…" : "Move back to To review"}
+                </button>
+              ) : (
                 <button
                   type="button"
                   onClick={() => save(false)}

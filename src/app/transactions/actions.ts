@@ -59,3 +59,26 @@ export async function markReviewed(transactionIds: string[]): Promise<MoveResult
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+// Puts reviewed transactions back under "Pending to review".
+export async function markToReview(transactionIds: string[]): Promise<MoveResult> {
+  const { supabase } = await requireTwoFactorUser();
+  const ids = [...new Set(transactionIds)];
+  if (!ids.length || ids.length > 500 || !ids.every((id) => UUID.test(id))) {
+    return { ok: false, message: "Those transactions couldn't be found." };
+  }
+
+  // Row-level security only lets you change your own transactions.
+  const { error } = await supabase
+    .from("transactions")
+    .update({ reviewed_at: null })
+    .in("id", ids)
+    .not("reviewed_at", "is", null);
+  if (error) {
+    console.error("Moving transactions back to review failed:", error.message);
+    return { ok: false, message: "Couldn't move it back to To review. Try again." };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
