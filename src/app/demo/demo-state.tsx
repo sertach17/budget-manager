@@ -7,6 +7,7 @@ import type { CheckResult, SaveResult } from "@/app/upload/actions";
 import type { AddResult } from "@/app/accounts/actions";
 import type { GoalResult } from "@/app/goals/actions";
 import { GoalsProvider } from "@/app/goal-picker";
+import { UnreviewProvider } from "@/app/review-undo";
 import { readGoal, type GoalInput } from "@/lib/budget/goal-input";
 import { NEW_INCOME } from "@/app/transactions/new-income";
 import { readManualTransaction, type ManualInput } from "@/lib/budget/manual-transaction";
@@ -98,6 +99,8 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
   const base = useMemo(() => demoData(today), [today]);
   const [moves, setMoves] = useState<Record<string, string>>({});
   const [reviewed, setReviewed] = useState<ReadonlySet<string>>(() => new Set());
+  // Ones moved back to "Pending to review", including ones the demo started reviewed.
+  const [unreviewed, setUnreviewed] = useState<ReadonlySet<string>>(() => new Set());
   const [ownAccounts, setOwnAccounts] = useState<Account[]>(demoOwnAccounts);
   const [uploaded, setUploaded] = useState<Transaction[]>([]);
   const [uploadedPrints, setUploadedPrints] = useState<ReadonlySet<string>>(() => new Set());
@@ -273,6 +276,11 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
 
   const review = useCallback((transactionIds: string[]) => {
     setReviewed((current) => new Set([...current, ...transactionIds]));
+    setUnreviewed((current) => new Set([...current].filter((id) => !transactionIds.includes(id))));
+  }, []);
+  const unreview = useCallback((transactionIds: string[]) => {
+    setUnreviewed((current) => new Set([...current, ...transactionIds]));
+    setReviewed((current) => new Set([...current].filter((id) => !transactionIds.includes(id))));
   }, []);
 
   // An empty categoryId means "sort by my bank's category" again, which in
@@ -305,7 +313,8 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
         const tag = t.id in goalTags ? goalTags[t.id] || null : (t.goalId ?? null);
         // A deleted goal takes its tags with it.
         const tagged = { ...moved, goalId: tag && goalIds.has(tag) ? tag : null };
-        return reviewed.has(t.id) ? { ...tagged, reviewed: true } : tagged;
+        if (reviewed.has(t.id)) return { ...tagged, reviewed: true };
+        return unreviewed.has(t.id) ? { ...tagged, reviewed: false } : tagged;
       }),
     };
     const yourCategories = [...base.categories]
@@ -328,12 +337,14 @@ export function DemoProvider({ today, children }: { today: string; children: Rea
       updateGoal,
       deleteGoal,
     };
-  }, [base, moves, reviewed, ownAccounts, uploaded, goals, goalTags, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload, addManual, createGoal, updateGoal, deleteGoal]);
+  }, [base, moves, reviewed, unreviewed, ownAccounts, uploaded, goals, goalTags, today, move, review, addAccount, updateAccount, deleteAccount, checkUpload, saveUpload, addManual, createGoal, updateGoal, deleteGoal]);
 
   return (
     <DemoContext.Provider value={value}>
       <GoalsProvider goals={goals.map((g) => ({ id: g.id, name: g.name }))} onSetGoal={setGoal}>
-        {children}
+        <UnreviewProvider onUnreview={unreview}>
+          {children}
+        </UnreviewProvider>
       </GoalsProvider>
     </DemoContext.Provider>
   );
