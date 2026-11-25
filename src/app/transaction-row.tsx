@@ -62,8 +62,8 @@ function Tags({ t }: { t: RowTransaction }) {
 }
 
 // One transaction. Tap it to open a panel where you move it to another of
-// your categories, tag it to one of your goals (it keeps its category), or
-// mark it reviewed. On a phone the panel slides up from the bottom of the
+// your categories, tag it to one of your goals (it keeps its category), and
+// save and mark it reviewed in one tap. On a phone the panel slides up from the bottom of the
 // screen, with each choice full width and labelled.
 // `onMove` and `onReview` replace saving to the database;
 // the demo uses them to keep changes in the page only.
@@ -84,7 +84,7 @@ export function TransactionRow({
   const [goalChoice, setGoalChoice] = useState(t.goalId ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
-  const [reviewing, startReviewing] = useTransition();
+  const [savingReview, setSavingReview] = useState(false);
   const sheet = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -97,29 +97,18 @@ export function TransactionRow({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  const review = () =>
-    startReviewing(async () => {
-      if (onReview) {
-        onReview([t.id]);
-        setOpen(false);
-        return;
-      }
-      const result = await markReviewed([t.id]);
-      if (result.ok) {
-        setOpen(false);
-        setMessage(null);
-      } else {
-        setMessage(result.message ?? "Couldn't mark it reviewed.");
-      }
-    });
-
-  const save = () =>
+  // Save the category and goal. With `andReview`, also mark it reviewed in
+  // the same tap; with nothing changed that just marks it reviewed.
+  const save = (andReview: boolean) =>
     startSaving(async () => {
+      setSavingReview(andReview);
       const moved = choice !== (t.categoryId ?? "");
       const tagged = goalChoice !== (t.goalId ?? "");
-      if (onMove || onSetGoal) {
+      const review = andReview && !t.reviewed;
+      if (onMove || onSetGoal || onReview) {
         if (moved) onMove?.(t.id, choice);
         if (tagged) onSetGoal?.(t.id, goalChoice);
+        if (review) onReview?.([t.id]);
         setOpen(false);
         return;
       }
@@ -130,6 +119,10 @@ export function TransactionRow({
       if (tagged) {
         const result = await setTransactionGoal(t.id, goalChoice);
         if (!result.ok) return setMessage(result.message);
+      }
+      if (review) {
+        const result = await markReviewed([t.id]);
+        if (!result.ok) return setMessage(result.message ?? "Saved, but couldn't mark it reviewed.");
       }
       setOpen(false);
       setMessage(null);
@@ -200,7 +193,9 @@ export function TransactionRow({
             className="mt-5 space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              save();
+              // Enter does the main button: save and mark reviewed while it's
+              // still to review, otherwise just save.
+              save(!t.reviewed);
             }}
           >
             <div>
@@ -240,16 +235,16 @@ export function TransactionRow({
                 disabled={saving}
                 className="btn-primary pressable rounded-2xl px-4 py-3 text-base font-semibold disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save"}
+                {saving && (savingReview || t.reviewed) ? "Saving…" : t.reviewed ? "Save" : "Save and mark reviewed"}
               </button>
               {t.reviewed ? null : (
                 <button
                   type="button"
-                  onClick={review}
-                  disabled={reviewing}
+                  onClick={() => save(false)}
+                  disabled={saving}
                   className="pressable rounded-2xl border border-violet-400/40 bg-violet-500/10 px-4 py-3 text-base font-medium text-violet-200 disabled:opacity-50"
                 >
-                  {reviewing ? "Saving…" : "Mark reviewed"}
+                  {saving && !savingReview ? "Saving…" : "Save"}
                 </button>
               )}
               <button
