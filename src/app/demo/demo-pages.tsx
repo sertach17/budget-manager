@@ -8,6 +8,7 @@ import { AccountView } from "../accounts/account-view";
 import { AccountsFooter, AccountsList } from "../accounts/accounts-list";
 import { IncomeView } from "../income/income-view";
 import { summarizeMonth } from "@/lib/budget/summary";
+import { applyTransactionFilters, readFilters } from "@/lib/budget/filter-transactions";
 import { OwnAccounts } from "../banks/own-accounts";
 import { AppHeader } from "../app-header";
 import { BudgetView } from "../budget/budget-view";
@@ -46,12 +47,20 @@ export function DemoDashboard() {
 
 export function DemoTransactions() {
   const { data, yourCategories, move, review } = useDemo();
+  const filters = readFilters(useSearchParams());
   const newestFirst = [...data.transactions].sort((a, b) => b.postedOn.localeCompare(a.postedOn) || a.id.localeCompare(b.id));
   return (
     <>
       <AppHeader demo active="transactions" />
       <h1 className="sr-only">Transactions</h1>
-      <TransactionsView data={data} transactions={newestFirst} yourCategories={yourCategories} onMove={move} onReview={review} />
+      <TransactionsView
+        data={data}
+        transactions={applyTransactionFilters(data, newestFirst, filters)}
+        filters={filters}
+        yourCategories={yourCategories}
+        onMove={move}
+        onReview={review}
+      />
     </>
   );
 }
