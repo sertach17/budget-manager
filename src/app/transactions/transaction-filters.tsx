@@ -225,7 +225,7 @@ export function TransactionFilters({
                 value={filters.from}
                 max={filters.to || undefined}
                 onChange={(e) => go({ from: e.target.value })}
-                className="field bg-none! pr-3!"
+                className="field min-h-[3.1rem] bg-none! pr-3! [&::-webkit-date-and-time-value]:text-left"
               />
             </div>
             <div className="min-w-0">
@@ -238,7 +238,7 @@ export function TransactionFilters({
                 value={filters.to}
                 min={filters.from || undefined}
                 onChange={(e) => go({ to: e.target.value })}
-                className="field bg-none! pr-3!"
+                className="field min-h-[3.1rem] bg-none! pr-3! [&::-webkit-date-and-time-value]:text-left"
               />
             </div>
           </div>
